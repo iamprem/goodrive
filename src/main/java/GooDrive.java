@@ -103,7 +103,17 @@ public class GooDrive {
 				for (File file : files) {
 
 					if (file.getDownloadUrl() != null) {
-						String filePath = curDir.getPath() + java.io.File.separator + file.getTitle();
+						
+						String filePath = null;
+						// Check for filename longer than 255 characters - Supported by Unix and DOS (255 chars)
+						if (file.getTitle().length() > 255) {
+							String extensionPart = file.getTitle().substring(file.getTitle().lastIndexOf("."));
+							String namePart = file.getTitle().substring(0,255-extensionPart.length());
+							filePath = curDir.getPath() + java.io.File.separator + namePart+extensionPart;
+						}else{
+							filePath = curDir.getPath() + java.io.File.separator + file.getTitle();
+						}
+
 						java.io.File diskFile = new java.io.File(filePath);
 						Path path = diskFile.toPath();
 						if (diskFile.exists() && diskFile.isFile()) {
@@ -150,9 +160,6 @@ public class GooDrive {
 						view.write("parents", ByteBuffer.wrap(file.getParents().toString().getBytes()));
 						FileTime ft = FileTime.fromMillis(file.getModifiedDate().getValue());
 						Files.setLastModifiedTime(path, ft);
-						// ft =
-						// FileTime.fromMillis(file.getCreatedDate().getValue());
-						// Files.setAttribute(path, "creationTime", ft);
 
 						// To Print
 						BasicFileAttributes attr = Files.readAttributes(path, BasicFileAttributes.class);
@@ -169,7 +176,15 @@ public class GooDrive {
 
 					} else {
 
-						String dirPath = curDir.getPath() + java.io.File.separator + file.getTitle();
+						String dirPath = null;
+						// Check filename length is larger than 255, then truncate it to 255
+						if (file.getTitle().length() > 255) {
+							String namePart = file.getTitle().substring(0,255);
+							dirPath = curDir.getPath() + java.io.File.separator + namePart;
+						}else{
+							dirPath = curDir.getPath() + java.io.File.separator + file.getTitle();
+						}
+						
 						java.io.File dir = new java.io.File(dirPath);
 						if (!dir.exists()) {
 							dir.mkdirs();
@@ -199,6 +214,7 @@ public class GooDrive {
 
 	/**
 	 * Starting point of the program
+	 * 
 	 * @param args
 	 * @throws IOException
 	 */

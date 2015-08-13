@@ -1,4 +1,9 @@
-
+/**
+ * Data Structure for Preserving the folder structure
+ * 
+ * @author prem
+ *
+ */
 public class CurrentDirectory {
 
 	
