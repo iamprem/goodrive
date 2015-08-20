@@ -70,6 +70,18 @@ public class Attributes {
     }
 
 
+    public static void writeUserDefinedBatchDir(Path path, File file) {
+        UserDefinedFileAttributeView view = Files.getFileAttributeView(path, UserDefinedFileAttributeView.class);
+        try {
+            view.write("id", ByteBuffer.wrap(file.getId().getBytes()));
+            view.write("mimeType", ByteBuffer.wrap(file.getMimeType().getBytes()));
+            view.write("parents", ByteBuffer.wrap(file.getParents().toString().getBytes()));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+    }
+
     /**
      * Write single user defined attribute to the file
      *

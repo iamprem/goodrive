@@ -10,6 +10,7 @@ import com.iamprem.goodrive.filesystem.Attributes;
 import com.iamprem.goodrive.filesystem.LocalFS;
 import com.iamprem.goodrive.util.AppUtils;
 
+import javax.naming.directory.AttributeInUseException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -277,7 +278,6 @@ public class GoogleDriveServices {
     public static void upload(Drive service) throws IOException {
 
         long lastSynced = AppUtils.getLastSynced(APP_PROP_PATH);
-        //
 
         Path start = Paths.get(HOME_DIR);
 
@@ -285,6 +285,18 @@ public class GoogleDriveServices {
             @Override
             public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
                 //TODO Check its fileID
+                String id = Attributes.readUserDefined(dir,"id");
+                if (id == null){
+                    //TODO insert this dir to remote
+                    File insertedDir = insertFolder(service,
+                            dir.getFileName().toString(),
+                            Attributes.readUserDefined(dir.getParent(),"id"),
+                            "application/vnd.google-apps.folder",
+                            dir.toString());
+                    Attributes.writeBasic(dir,insertedDir);
+                    Attributes.writeUserDefinedBatchDir(dir, insertedDir);
+                }
+
                 return FileVisitResult.CONTINUE;
             }
 
@@ -337,7 +349,7 @@ public class GoogleDriveServices {
 
 
     // Upload a file to drive
-    private static File insertFile(Drive service, String title, String parentId, String mimeType, String filename) {
+    private static File insertFile(Drive service, String title, String parentId, String mimeType, String filePath) {
         // File's metadata.
         File body = new File();
         body.setTitle(title);
@@ -350,12 +362,35 @@ public class GoogleDriveServices {
         }
 
         // File's content.
-        java.io.File fileContent = new java.io.File(filename);
+        java.io.File fileContent = new java.io.File(filePath);
         FileContent mediaContent = new FileContent(mimeType, fileContent);
         try {
             File file = service.files().insert(body, mediaContent).execute();
 
-            System.out.println("Inserted New File: " + filename);
+            System.out.println("Inserted New File: " + filePath);
+            return file;
+        } catch (IOException e) {
+            System.out.println("An error occured: " + e);
+            return null;
+        }
+    }
+
+    private  static File insertFolder(Drive service, String title, String parentId, String mimeType, String filePath) {
+        // File's metadata.
+        File body = new File();
+        body.setTitle(title);
+        body.setMimeType(mimeType);
+
+        // Set the parent folder.
+        if (parentId != null && parentId.length() > 0) {
+            body.setParents(
+                    Arrays.asList(new ParentReference().setId(parentId)));
+        }
+
+        try {
+            File file = service.files().insert(body).execute();
+
+            System.out.println("Inserted New Folder: " + filePath);
             return file;
         } catch (IOException e) {
             System.out.println("An error occured: " + e);
@@ -364,7 +399,7 @@ public class GoogleDriveServices {
     }
 
     private static File updateFile(Drive service, String fileId, String newTitle, String newMimeType,
-                                   String newFilename, boolean newRevision) {
+                                   String newFilePath, boolean newRevision) {
         try {
             // First retrieve the file from the API.
             File file = service.files().get(fileId).execute();
@@ -374,13 +409,13 @@ public class GoogleDriveServices {
             file.setMimeType(newMimeType);
 
             // File's new content.
-            java.io.File fileContent = new java.io.File(newFilename);
+            java.io.File fileContent = new java.io.File(newFilePath);
             FileContent mediaContent = new FileContent(newMimeType, fileContent);
 
             // Send the request to the API.
             File updatedFile = service.files().update(fileId, file, mediaContent).execute();
 
-            System.out.println("Updated New File: " + newFilename);
+            System.out.println("Updated New File: " + newFilePath);
             return updatedFile;
         } catch (IOException e) {
             System.out.println("An error occurred: " + e);
