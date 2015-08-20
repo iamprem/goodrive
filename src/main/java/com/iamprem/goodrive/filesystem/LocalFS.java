@@ -24,6 +24,7 @@ public class LocalFS {
         } else {
             System.out.println(format("path %s already exists", file.getAbsolutePath()));
         }
+        Attributes.writeUserDefinedSingle(file.toPath(),"id","root");
         return file.getAbsolutePath();
     }
 

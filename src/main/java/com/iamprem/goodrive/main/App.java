@@ -15,8 +15,8 @@ public class App {
     public static void main(String[] args) throws IOException {
         // Build a new authorized API client service.
         Drive service = Authenticate.getDriveService();
-//        GoogleDriveServices.download(service);
-//        AppUtils.setLastSynced(GoogleDriveServices.APP_PROP_PATH);
+        GoogleDriveServices.download(service);
+        AppUtils.setLastSynced(GoogleDriveServices.APP_PROP_PATH);
         GoogleDriveServices.upload(service);
     }
 }

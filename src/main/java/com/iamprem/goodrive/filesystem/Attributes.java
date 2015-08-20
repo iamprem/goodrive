@@ -87,6 +87,15 @@ public class Attributes {
         }
     }
 
+    public static void writeUserDefinedSingle(Path path, String attrName, String attrValue) {
+        UserDefinedFileAttributeView view = Files.getFileAttributeView(path, UserDefinedFileAttributeView.class);
+        try {
+            view.write(attrName, ByteBuffer.wrap(attrValue.getBytes()));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     /**
      * Compare lastModifiedDate of the file from Drive to the lastModifiedDate of file from Local
      * @param remoteModfDate
