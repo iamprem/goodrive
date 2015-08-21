@@ -85,9 +85,9 @@ public class GoogleDriveServices {
 
                         String filePath = trimFileName(file, curDir);
                         java.io.File diskFile = new java.io.File(filePath);
-                        Path path = diskFile.toPath();
 
                         if (diskFile.exists() && diskFile.isFile()) {
+                            Path path = diskFile.toPath();
                             String id = Attributes.readUserDefined(path, "id");
                             if (id.equals(file.getId())) {
 
@@ -115,13 +115,13 @@ public class GoogleDriveServices {
                             } else {
                                 // TODO Duplicate file with same name but
                                 // different id. Enumerate the file name
-                                enumDuplicates(service, file, filePath);
+                                diskFile = enumDuplicates(service, file, filePath);
                             }
 
                         } else if (diskFile.exists() && diskFile.isDirectory()) {
                             // If there is a directory in that path, then
                             // enumerate the file and store.
-                            enumDuplicates(service, file, filePath);
+                            diskFile = enumDuplicates(service, file, filePath);
                         } else {
                             // No directory or file exist in the same name in
                             // the path
@@ -136,8 +136,8 @@ public class GoogleDriveServices {
                             System.out.println(file.getTitle() + " - Done!");
                         }
 
-                        Attributes.writeUserDefinedBatch(path, file);
-                        Attributes.writeBasic(path, file);
+                        Attributes.writeUserDefinedBatch(diskFile.toPath(), file);
+                        Attributes.writeBasic(diskFile.toPath(), file);
 
                     } else {
 
@@ -249,6 +249,7 @@ public class GoogleDriveServices {
     public static void upload(Drive service) throws IOException {
 
         long lastSynced = AppUtils.getLastSynced(APP_PROP_PATH);
+        if (lastSynced == 0) return;
 
         Path start = Paths.get(HOME_DIR);
 

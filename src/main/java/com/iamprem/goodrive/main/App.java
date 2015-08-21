@@ -9,6 +9,8 @@ import com.iamprem.goodrive.util.AppUtils;
 
 import java.io.IOException;
 import java.sql.Connection;
+import java.util.Date;
+import java.util.Properties;
 
 /**
  * Created by prem on 8/17/15.
@@ -18,9 +20,16 @@ public class App {
     public static void main(String[] args) throws IOException {
         // Build a new authorized API client service.
         Drive service = Authenticate.getDriveService();
+
+        Properties prop = new Properties();
+        prop.setProperty("LastSynced", String.valueOf(new Date().getTime()));
+
+        //Start download
         GoogleDriveServices.download(service);
-        AppUtils.setLastSynced(GoogleDriveServices.APP_PROP_PATH);
+        //Start Upload
         GoogleDriveServices.upload(service);
+        //After sync set lastsync time as before the download starts
+        AppUtils.setProperties(GoogleDriveServices.APP_PROP_PATH,prop);
 
         //DB
         Connection conn = DBConnection.open();
