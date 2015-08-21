@@ -29,8 +29,9 @@ import java.util.*;
 public class GoogleDriveServices {
 
     //Static variables
-    protected static final String HOME_DIR = LocalFS.makeRootDir();
-    public static final String APP_PROP_PATH = LocalFS.makeConfigDir()+ java.io.File.separator+"app.properties";
+    public static final String HOME_DIR = LocalFS.makeRootDir();
+    public static final String CONFIG_PATH = LocalFS.makeConfigDir();
+    public static final String APP_PROP_PATH = CONFIG_PATH + java.io.File.separator + "app.properties";
     protected static final List<String> MIMETYPES_SPECIAL = new ArrayList<String>();
     protected static Properties appProperties;
 
@@ -135,7 +136,7 @@ public class GoogleDriveServices {
                             System.out.println(file.getTitle() + " - Done!");
                         }
 
-                        Attributes.writeUserDefinedBatch(path,file);
+                        Attributes.writeUserDefinedBatch(path, file);
                         Attributes.writeBasic(path, file);
 
                     } else {

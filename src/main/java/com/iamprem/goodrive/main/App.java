@@ -1,11 +1,14 @@
 package com.iamprem.goodrive.main;
 
 import com.google.api.services.drive.Drive;
+import com.iamprem.goodrive.db.DBConnection;
+import com.iamprem.goodrive.db.DBSchema;
 import com.iamprem.goodrive.service.Authenticate;
 import com.iamprem.goodrive.service.GoogleDriveServices;
 import com.iamprem.goodrive.util.AppUtils;
 
 import java.io.IOException;
+import java.sql.Connection;
 
 /**
  * Created by prem on 8/17/15.
@@ -18,5 +21,10 @@ public class App {
         GoogleDriveServices.download(service);
         AppUtils.setLastSynced(GoogleDriveServices.APP_PROP_PATH);
         GoogleDriveServices.upload(service);
+
+        //DB
+        Connection conn = DBConnection.open();
+        DBSchema.createTable(conn);
+        DBConnection.close();
     }
 }
