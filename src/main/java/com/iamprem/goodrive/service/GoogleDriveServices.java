@@ -135,38 +135,8 @@ public class GoogleDriveServices {
                             System.out.println(file.getTitle() + " - Done!");
                         }
 
-                        // Write MetaData of the file
-                        UserDefinedFileAttributeView view = Files.getFileAttributeView(path,
-                                UserDefinedFileAttributeView.class);
-                        view.write("id", ByteBuffer.wrap(file.getId().getBytes()));
-                        view.write("md5CheckSum", ByteBuffer.wrap(file.getMd5Checksum().getBytes()));
-                        view.write("mimeType", ByteBuffer.wrap(file.getMimeType().getBytes()));
-                        view.write("parents", ByteBuffer.wrap(file.getParents().toString().getBytes()));
-                        System.out.println("Remote : " + file.getModifiedDate().getValue());
-                        FileTime ft = FileTime.fromMillis(file.getModifiedDate().getValue());
-                        System.out.println("Local : " + ft.toMillis());
-                        Files.setLastModifiedTime(path, ft);
-                        System.out.println("Back from File : " + Files.getLastModifiedTime(path).toMillis());
-
-
-//                        BasicFileAttributes attr =
-//                                Files.readAttributes(path,
-//                                        BasicFileAttributes.class);
-//                        System.out.println("creationTime: " +
-//                                attr.creationTime());
-//                        System.out.println("lastModifiedTime: " +
-//                                attr.lastModifiedTime());
-                        UserDefinedFileAttributeView view1 =
-                                Files.getFileAttributeView(path,
-                                        UserDefinedFileAttributeView.class);
-                        String name = "id";
-                        ByteBuffer buf =
-                                ByteBuffer.allocate(view1.size(name));
-                        view1.read(name, buf);
-                        buf.flip();
-                        String value =
-                                Charset.defaultCharset().decode(buf).toString();
-                        System.out.println(value);
+                        Attributes.writeUserDefinedBatch(path,file);
+                        Attributes.writeBasic(path, file);
 
                     } else {
 
@@ -290,7 +260,7 @@ public class GoogleDriveServices {
                     //TODO insert this dir to remote
                     File insertedDir = insertFolder(service,
                             dir.getFileName().toString(),
-                            Attributes.readUserDefined(dir.getParent(),"id"),
+                            Attributes.readUserDefined(dir.getParent(), "id"),
                             "application/vnd.google-apps.folder",
                             dir.toString());
                     Attributes.writeBasic(dir,insertedDir);

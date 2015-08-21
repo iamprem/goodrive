@@ -56,6 +56,7 @@ public class Attributes {
     }
 
 
+    //Note: Used only for files
     public static void writeUserDefinedBatch(Path path, File file) {
         UserDefinedFileAttributeView view = Files.getFileAttributeView(path, UserDefinedFileAttributeView.class);
         try {
@@ -70,6 +71,7 @@ public class Attributes {
     }
 
 
+    //Set user defined attribute for folder, coz it doesn't have checksum value
     public static void writeUserDefinedBatchDir(Path path, File file) {
         UserDefinedFileAttributeView view = Files.getFileAttributeView(path, UserDefinedFileAttributeView.class);
         try {
