@@ -66,7 +66,14 @@ public class GoogleDriveServices {
         }
     }
 
+    public static String getLargestChangeId(Drive service) throws IOException {
 
+        Drive.Changes.List request = service.changes().list();
+        request.setStartChangeId((long)1);
+        ChangeList changes = request.execute();
+        AppUtils.addProperty(APP_PROP_PATH,"largestChangeId", changes.getLargestChangeId().toString());
+        return changes.getLargestChangeId().toString();
+    }
     /**
      * Download files and folders from Drive preserving the folder structure
      *
@@ -208,26 +215,29 @@ public class GoogleDriveServices {
      * @param startChangeId ID of the change to start retrieving subsequent changes from or {@code null}.
      * @return List of Change resources.
      */
-    private static List<Change> retrieveAllChanges(Drive service,
+    public static List<Change> retrieveAllChanges(Drive service,
                                                    Long startChangeId) throws IOException {
         List<Change> result = new ArrayList<Change>();
         Drive.Changes.List request = service.changes().list();
 
         if (startChangeId != null) {
-            request.setStartChangeId(startChangeId);
+            request.setStartChangeId(startChangeId+1);
         }
+        ChangeList changes = null;
         do {
             try {
-                ChangeList changes = request.execute();
+                changes = request.execute();
                 result.addAll(changes.getItems());
                 request.setPageToken(changes.getNextPageToken());
+                AppUtils.addProperty(APP_PROP_PATH, "largestChangeId", changes.getLargestChangeId().toString());
 
             } catch (IOException e) {
-                System.out.println("An error occurred: " + e);
+                e.printStackTrace();
                 request.setPageToken(null);
             }
         } while (request.getPageToken() != null &&
                 request.getPageToken().length() > 0);
+
         return result;
     }
 

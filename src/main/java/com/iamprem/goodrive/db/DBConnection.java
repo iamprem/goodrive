@@ -20,7 +20,7 @@ public class DBConnection {
                     + GoogleDriveServices.CONFIG_PATH
                     + File.separator
                     + "goodrive.db");
-            System.out.println("Connection successful! - "+connection.getSchema());
+            System.out.println("Connection Opened Successfully!");
         } catch (SQLException e) {
             e.printStackTrace();
         }

@@ -19,19 +19,28 @@ import java.util.Properties;
  */
 public class App {
 
+    public static Connection conn = DBConnection.open();
+
     public static void main(String[] args) throws IOException, SQLException {
         // Build a new authorized API client service.
         Drive service = Authenticate.getDriveService();
         String lastSyncVal = String.valueOf(new Date().getTime());
 
-        GoogleDriveServices.getRootId(service);
+
+
+
         if (AppUtils.getLastSynced(GoogleDriveServices.APP_PROP_PATH) == 0){
             //First Time
+            //Load Some needy props from drive remote
+            GoogleDriveServices.getRootId(service);
+            GoogleDriveServices.getLargestChangeId(service);
             GoogleDriveServices.downloadAll(service);
         } else{
 
             //Start download
-            GoogleDriveServices.downloadLatest(service, AppUtils.getLastSynced(GoogleDriveServices.APP_PROP_PATH));
+            long largestChangeId = Long.parseLong(AppUtils.getProperties(GoogleDriveServices.APP_PROP_PATH).getProperty("largestChangeId"));
+            GoogleDriveServices.retrieveAllChanges(service, largestChangeId);
+//            GoogleDriveServices.downloadLatest(service, AppUtils.getLastSynced(GoogleDriveServices.APP_PROP_PATH));
             //Start Upload
 //            GoogleDriveServices.upload(service);
         }
@@ -42,6 +51,6 @@ public class App {
 //        Connection conn = DBConnection.open();
 //
 //        DBSchema.createTable(conn);
-//        DBConnection.close();
+        DBConnection.close();
     }
 }

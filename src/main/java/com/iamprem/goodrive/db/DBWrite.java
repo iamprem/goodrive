@@ -4,6 +4,7 @@ import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.model.File;
 import com.google.api.services.drive.model.ParentReference;
 import com.iamprem.goodrive.filesystem.Attributes;
+import com.iamprem.goodrive.main.App;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -21,6 +22,7 @@ public class DBWrite {
         // Private Constructor
     }
 
+    // Insert details about the new files to db on the first run
     public static void insertFile(File file, java.io.File diskFile) throws IOException, SQLException {
 
         String id = file.getId();
@@ -41,7 +43,7 @@ public class DBWrite {
         long localModified = Files.getLastModifiedTime(diskFile.toPath()).toMillis();
         String mimeType = file.getMimeType();
 
-        Connection con = DBConnection.open();
+        Connection con = App.conn;
 
         Statement stmt = con.createStatement();
         String sql = "INSERT INTO files (id, localname, remotename, localpath, parentid, remotestatus, localstatus, " +
@@ -50,7 +52,6 @@ public class DBWrite {
                 +"', '"+localStatus+"',"+localModified+", '"+mimeType+"' );";
         stmt.executeUpdate(sql);
         stmt.close();
-        con.close();
     }
 
 }
