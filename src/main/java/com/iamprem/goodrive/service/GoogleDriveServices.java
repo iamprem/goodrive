@@ -3,6 +3,7 @@ package com.iamprem.goodrive.service;
 import com.google.api.client.http.FileContent;
 import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.model.*;
+import com.iamprem.goodrive.db.DBWrite;
 import com.iamprem.goodrive.entity.CurrentDirectory;
 import com.iamprem.goodrive.filesystem.Attributes;
 import com.iamprem.goodrive.filesystem.LocalFS;
@@ -20,6 +21,7 @@ import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileTime;
 import java.nio.file.attribute.UserDefinedFileAttributeView;
+import java.sql.SQLException;
 import java.util.*;
 
 /**
@@ -52,6 +54,17 @@ public class GoogleDriveServices {
         }
     }
 
+    public static String getRootId(Drive service){
+
+        try {
+            File file = service.files().get("root").execute();
+            AppUtils.addProperty(APP_PROP_PATH, "rootid", file.getId());
+            return file.getId();
+        }catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
 
 
     /**
@@ -63,17 +76,25 @@ public class GoogleDriveServices {
      * @param service
      * @throws IOException
      */
-    public static void downloadAll(Drive service) throws IOException {
+    public static void downloadAll(Drive service) throws IOException, SQLException {
         Stack<CurrentDirectory> dirLevel = new Stack<CurrentDirectory>();
         // Initial Level as 'root'
         dirLevel.push(new CurrentDirectory("root", HOME_DIR, "GooDrive"));
 
         while (!dirLevel.isEmpty()) {
+            List<File> files = new ArrayList<>();
             CurrentDirectory curDir = dirLevel.pop();
-            FileList result = service.files().list().setQ("'" + curDir.getId() + "' in parents").execute();
-            List<File> files = result.getItems();
+            Drive.Files.List request = service.files().list().setQ("'" + curDir.getId() + "' in parents");
 
-            if (files == null) {
+            do {
+                FileList result = request.execute();
+                files.addAll(result.getItems());
+                request.setPageToken(result.getNextPageToken());
+            } while (request.getPageToken() != null &&
+                    request.getPageToken().length() > 0);
+
+            if (files == null || files.size() == 0) {
+
                 System.out.println("Empty directory : " + curDir.getTitle());
 
             } else {
@@ -137,6 +158,7 @@ public class GoogleDriveServices {
 
                         Attributes.writeUserDefinedBatch(diskFile.toPath(), file);
                         Attributes.writeBasic(diskFile.toPath(), file);
+                        DBWrite.insertFile(file, diskFile);
 
                     } else {
 
@@ -168,6 +190,7 @@ public class GoogleDriveServices {
                         // TODO: After creating the folder if we add files to
                         // that, modified date changes. :P Expected!!!
                         userView.write("parents", ByteBuffer.wrap(file.getParents().toString().getBytes()));
+                        DBWrite.insertFile(file, dir);
                     }
 
                 }
@@ -182,8 +205,7 @@ public class GoogleDriveServices {
      * Retrieve a list of Change resources.
      *
      * @param service Drive API service instance.
-     * @param startChangeId ID of the change to start retrieving subsequent
-    changes from or {@code null}.
+     * @param startChangeId ID of the change to start retrieving subsequent changes from or {@code null}.
      * @return List of Change resources.
      */
     private static List<Change> retrieveAllChanges(Drive service,

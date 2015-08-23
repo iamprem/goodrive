@@ -1,7 +1,10 @@
 package com.iamprem.goodrive.util;
 
 
+import com.google.api.services.drive.Drive;
+import com.google.api.services.drive.model.File;
 import com.iamprem.goodrive.filesystem.LocalFS;
+
 
 import java.io.*;
 import java.nio.file.Files;
@@ -39,6 +42,7 @@ public class AppUtils {
         }
         output = new FileOutputStream(path);
         prop.store(output,null);
+        output.close();
 
     }
 
@@ -52,11 +56,19 @@ public class AppUtils {
 
     }
 
+    //TODO Not used anywhere
     public static void setLastSynced(String path) throws IOException {
         Properties prop = new Properties();
+        prop.load(new FileInputStream(path));
         prop.setProperty("LastSynced", String.valueOf(new Date().getTime()));
         setProperties(path, prop);
     }
 
+    public static void addProperty(String path, String propName, String propValue) throws IOException {
+        Properties prop = new Properties();
+        prop.load(new FileInputStream(path));
+        prop.setProperty(propName,propValue);
+        setProperties(path,prop);
+    }
 
 }

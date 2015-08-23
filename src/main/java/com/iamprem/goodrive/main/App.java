@@ -10,6 +10,7 @@ import com.iamprem.goodrive.util.DateUtils;
 
 import java.io.IOException;
 import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.Date;
 import java.util.Properties;
 
@@ -18,12 +19,12 @@ import java.util.Properties;
  */
 public class App {
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws IOException, SQLException {
         // Build a new authorized API client service.
         Drive service = Authenticate.getDriveService();
-        Properties prop = new Properties();
-        prop.setProperty("LastSynced", String.valueOf(new Date().getTime()));
+        String lastSyncVal = String.valueOf(new Date().getTime());
 
+        GoogleDriveServices.getRootId(service);
         if (AppUtils.getLastSynced(GoogleDriveServices.APP_PROP_PATH) == 0){
             //First Time
             GoogleDriveServices.downloadAll(service);
@@ -35,11 +36,12 @@ public class App {
 //            GoogleDriveServices.upload(service);
         }
         //After sync set lastsync time as before the download starts
-        AppUtils.setProperties(GoogleDriveServices.APP_PROP_PATH, prop);
+        AppUtils.addProperty(GoogleDriveServices.APP_PROP_PATH, "LastSynced", lastSyncVal);
 
         //DB
-        Connection conn = DBConnection.open();
-        DBSchema.createTable(conn);
-        DBConnection.close();
+//        Connection conn = DBConnection.open();
+//
+//        DBSchema.createTable(conn);
+//        DBConnection.close();
     }
 }
