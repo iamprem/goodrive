@@ -24,4 +24,8 @@ dependencies {
 
     /* SQLite JDBC */
     compile 'org.xerial:sqlite-jdbc:3.8.11'
+
+    /*Apache Commons IO*/
+    compile 'commons-io:commons-io:2.4'
+
 }

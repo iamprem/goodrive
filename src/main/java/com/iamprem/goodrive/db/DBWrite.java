@@ -3,6 +3,7 @@ package com.iamprem.goodrive.db;
 import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.model.File;
 import com.google.api.services.drive.model.ParentReference;
+import com.iamprem.goodrive.entity.FilesMeta;
 import com.iamprem.goodrive.filesystem.Attributes;
 import com.iamprem.goodrive.main.App;
 
@@ -54,4 +55,14 @@ public class DBWrite {
         stmt.close();
     }
 
+    public static void updateFile(FilesMeta fm) throws SQLException {
+
+        String id = fm.getId();
+        Connection con = App.conn;
+        Statement stmt = con.createStatement();
+        String sql = "UPDATE files SET localmodified = "+fm.getLocalModified()+" WHERE id = '"+fm.getId()+"';";
+        stmt.executeUpdate(sql);
+        stmt.close();
+
+    }
 }

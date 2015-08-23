@@ -1,6 +1,7 @@
 package com.iamprem.goodrive.main;
 
 import com.google.api.services.drive.Drive;
+import com.google.api.services.drive.model.Change;
 import com.iamprem.goodrive.db.DBConnection;
 import com.iamprem.goodrive.db.DBSchema;
 import com.iamprem.goodrive.service.Authenticate;
@@ -11,6 +12,7 @@ import com.iamprem.goodrive.util.DateUtils;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.Properties;
 
@@ -39,7 +41,9 @@ public class App {
 
             //Start download
             long largestChangeId = Long.parseLong(AppUtils.getProperties(GoogleDriveServices.APP_PROP_PATH).getProperty("largestChangeId"));
-            GoogleDriveServices.retrieveAllChanges(service, largestChangeId);
+            ArrayList<Change> retrievedChangeList = GoogleDriveServices.retrieveAllChanges(service, largestChangeId);
+            GoogleDriveServices.downloadLatest(service,retrievedChangeList,largestChangeId);
+
 //            GoogleDriveServices.downloadLatest(service, AppUtils.getLastSynced(GoogleDriveServices.APP_PROP_PATH));
             //Start Upload
 //            GoogleDriveServices.upload(service);

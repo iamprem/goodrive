@@ -3,18 +3,18 @@ package com.iamprem.goodrive.service;
 import com.google.api.client.http.FileContent;
 import com.google.api.services.drive.Drive;
 import com.google.api.services.drive.model.*;
+import com.google.api.services.drive.model.File;
+import com.iamprem.goodrive.db.DBRead;
 import com.iamprem.goodrive.db.DBWrite;
 import com.iamprem.goodrive.entity.CurrentDirectory;
+import com.iamprem.goodrive.entity.FilesMeta;
 import com.iamprem.goodrive.filesystem.Attributes;
 import com.iamprem.goodrive.filesystem.LocalFS;
 import com.iamprem.goodrive.util.AppUtils;
 import com.iamprem.goodrive.util.DateUtils;
 
 import javax.naming.directory.AttributeInUseException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.file.*;
@@ -32,7 +32,7 @@ public class GoogleDriveServices {
     //Static variables
     public static final String HOME_DIR = LocalFS.makeRootDir();
     public static final String CONFIG_PATH = LocalFS.makeConfigDir();
-    public static final String APP_PROP_PATH = CONFIG_PATH + java.io.File.separator + "app.properties";
+    public static final String APP_PROP_PATH = LocalFS.makeAppPropFile();
     protected static final List<String> MIMETYPES_SPECIAL = new ArrayList<String>();
     protected static Properties appProperties;
 
@@ -71,7 +71,7 @@ public class GoogleDriveServices {
         Drive.Changes.List request = service.changes().list();
         request.setStartChangeId((long)1);
         ChangeList changes = request.execute();
-        AppUtils.addProperty(APP_PROP_PATH,"largestChangeId", changes.getLargestChangeId().toString());
+        AppUtils.addProperty(APP_PROP_PATH, "largestChangeId", changes.getLargestChangeId().toString());
         return changes.getLargestChangeId().toString();
     }
     /**
@@ -215,13 +215,13 @@ public class GoogleDriveServices {
      * @param startChangeId ID of the change to start retrieving subsequent changes from or {@code null}.
      * @return List of Change resources.
      */
-    public static List<Change> retrieveAllChanges(Drive service,
+    public static ArrayList<Change> retrieveAllChanges(Drive service,
                                                    Long startChangeId) throws IOException {
-        List<Change> result = new ArrayList<Change>();
+        ArrayList<Change> result = new ArrayList<Change>();
         Drive.Changes.List request = service.changes().list();
 
         if (startChangeId != null) {
-            request.setStartChangeId(startChangeId+1);
+            request.setStartChangeId(800L);
         }
         ChangeList changes = null;
         do {
@@ -229,7 +229,8 @@ public class GoogleDriveServices {
                 changes = request.execute();
                 result.addAll(changes.getItems());
                 request.setPageToken(changes.getNextPageToken());
-                AppUtils.addProperty(APP_PROP_PATH, "largestChangeId", changes.getLargestChangeId().toString());
+                //TODO should change the property after down syncing the changes
+                //AppUtils.addProperty(APP_PROP_PATH, "largestChangeId", changes.getLargestChangeId().toString());
 
             } catch (IOException e) {
                 e.printStackTrace();
@@ -242,7 +243,74 @@ public class GoogleDriveServices {
     }
 
 
-    public static void downloadLatest(Drive service, long lastSyncTime) throws IOException {
+    public static void downloadLatest(Drive service, ArrayList<Change> changeList, long largestChangeId) throws IOException, SQLException {
+
+        for (Change change : changeList) {
+
+            FilesMeta localFile = DBRead.readFileById(change.getFileId());
+
+            if (localFile != null){
+                if (localFile.getLocalModified() < change.getModificationDate().getValue()){
+                    //Update/delete the file from remote -> local
+                    if (change.getDeleted()){
+                        LocalFS.deleteFile(localFile.getLocalPath());
+                        //TODO update db for remote status to deleted
+                    }else {
+                        //TODO put this in remote2localUpdate method
+                        File remoteFile = change.getFile();
+                        if (remoteFile.getParents().size() > 1){
+                            //Handle multiple parents
+                            System.err.println("Handle multiple parents");
+                        } else{
+                            String parent = remoteFile.getParents().get(0).getId();
+                            if (parent.equals(localFile.getParentId())){
+
+                                if (!MIMETYPES_SPECIAL.contains(remoteFile.getMimeType())){
+                                    OutputStream os = new FileOutputStream(localFile.getLocalPath());
+                                    InputStream is = service.files().get(remoteFile.getId()).executeMediaAsInputStream();
+                                    int read = 0;
+                                    byte[] bytes = new byte[1024];
+                                    while ((read = is.read(bytes)) != -1) {
+                                        os.write(bytes, 0, read);
+                                    }
+                                    os.close();
+                                    System.out.println(remoteFile.getTitle() + " - Downloaded the latest version!");
+
+                                } else{
+                                    //Could be a directory
+                                    System.err.println("Could be a directory or other special type");
+                                }
+
+
+
+                            } else{
+                                System.err.println("Local and remote parents did not match");
+
+                            }
+//                            Attributes.writeUserDefinedBatch(Paths.get(localFile.getLocalPath()), remoteFile);
+//                            Attributes.writeBasic(Paths.get(localFile.getLocalPath()), remoteFile);
+                            localFile.setLocalModified(change.getModificationDate().getValue());
+                            DBWrite.updateFile(localFile);
+
+                        }
+                    }
+
+                } else if (localFile.getLocalModified() > change.getModificationDate().getValue()){
+                    // Update the file from local -> remote
+                    // Update the local modified time while pushing to remote
+                    //TODO may cause problem on next sync because of local -> remote change counts as a change in remote
+                } else{
+                    //Both remote and local have same modified time
+                }
+            } else{
+                //IF the file is null, this is created in remote and new to download to local
+
+            }
+            largestChangeId = change.getId();
+
+        }
+
+        /*
         String lastSyncString = DateUtils.long2UTCString(AppUtils.getLastSynced(GoogleDriveServices.APP_PROP_PATH));
         Stack<CurrentDirectory> dirLevel = new Stack<CurrentDirectory>();
         // Initial Level as 'root'
@@ -354,7 +422,7 @@ public class GoogleDriveServices {
 
             }
 
-        }
+        } */
     }
 
 
