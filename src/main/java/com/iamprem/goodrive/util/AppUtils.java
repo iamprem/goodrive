@@ -44,7 +44,12 @@ public class AppUtils {
 
     public static long getLastSynced(String path) throws IOException {
         Properties prop = getProperties(path);
-        return Long.parseLong(prop.getProperty("LastSynced"));
+        try{
+            return Long.parseLong(prop.getProperty("LastSynced"));
+        } catch (NumberFormatException e){
+            return 0;
+        }
+
     }
 
     public static void setLastSynced(String path) throws IOException {
