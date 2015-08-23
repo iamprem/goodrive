@@ -26,7 +26,7 @@ public class App {
     public static void main(String[] args) throws IOException, SQLException {
         // Build a new authorized API client service.
         Drive service = Authenticate.getDriveService();
-        String lastSyncVal = String.valueOf(new Date().getTime());
+//        String lastSyncVal = String.valueOf(new Date().getTime());
 
 
 
@@ -42,14 +42,15 @@ public class App {
             //Start download
             long largestChangeId = Long.parseLong(AppUtils.getProperties(GoogleDriveServices.APP_PROP_PATH).getProperty("largestChangeId"));
             ArrayList<Change> retrievedChangeList = GoogleDriveServices.retrieveAllChanges(service, largestChangeId);
-            GoogleDriveServices.downloadLatest(service,retrievedChangeList,largestChangeId);
+            if (retrievedChangeList.size() > 0){
+                GoogleDriveServices.downloadLatest(service,retrievedChangeList,largestChangeId);
+            }
 
-//            GoogleDriveServices.downloadLatest(service, AppUtils.getLastSynced(GoogleDriveServices.APP_PROP_PATH));
             //Start Upload
-//            GoogleDriveServices.upload(service);
+            GoogleDriveServices.upload(service);
         }
         //After sync set lastsync time as before the download starts
-        AppUtils.addProperty(GoogleDriveServices.APP_PROP_PATH, "LastSynced", lastSyncVal);
+//        AppUtils.addProperty(GoogleDriveServices.APP_PROP_PATH, "LastSynced", lastSyncVal);
 
         //DB
 //        Connection conn = DBConnection.open();

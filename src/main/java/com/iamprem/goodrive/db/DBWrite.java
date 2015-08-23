@@ -41,7 +41,9 @@ public class DBWrite {
         }
         String remoteStatus = "Synced";
         String localStatus = "Synced";
-        long localModified = Files.getLastModifiedTime(diskFile.toPath()).toMillis();
+        //TODO CHECK THIS
+        //long localModified = Files.getLastModifiedTime(diskFile.toPath()).toMillis();
+        long localModified = file.getModifiedDate().getValue();
         String mimeType = file.getMimeType();
 
         Connection con = App.conn;

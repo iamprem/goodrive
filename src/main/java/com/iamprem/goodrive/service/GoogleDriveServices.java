@@ -221,7 +221,7 @@ public class GoogleDriveServices {
         Drive.Changes.List request = service.changes().list();
 
         if (startChangeId != null) {
-            request.setStartChangeId(800L);
+            request.setStartChangeId(startChangeId+1);
         }
         ChangeList changes = null;
         do {
@@ -276,9 +276,14 @@ public class GoogleDriveServices {
                                     os.close();
                                     System.out.println(remoteFile.getTitle() + " - Downloaded the latest version!");
 
+                                    Attributes.writeUserDefinedBatch(Paths.get(localFile.getLocalPath()), remoteFile);
+                                    Attributes.writeBasic(Paths.get(localFile.getLocalPath()), remoteFile);
+
                                 } else{
                                     //Could be a directory
                                     System.err.println("Could be a directory or other special type");
+                                    Attributes.writeUserDefinedBatchDir(Paths.get(localFile.getLocalPath()), remoteFile);
+                                    Attributes.writeBasic(Paths.get(localFile.getLocalPath()), remoteFile);
                                 }
 
 
@@ -307,7 +312,8 @@ public class GoogleDriveServices {
 
             }
             largestChangeId = change.getId();
-
+            AppUtils.addProperty(GoogleDriveServices.APP_PROP_PATH,"largestChangeId", change.getId().toString());
+            AppUtils.addProperty(GoogleDriveServices.APP_PROP_PATH, "LastSynced", String.valueOf(change.getModificationDate().getValue()));
         }
 
         /*
