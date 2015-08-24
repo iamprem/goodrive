@@ -16,7 +16,7 @@ import static java.nio.file.StandardWatchEventKinds.*;
 /**
  * Created by prem on 8/23/15.
  */
-public class WatchDir {
+public class WatchDir implements Runnable{
 
     private final WatchService watcher;
     private final Map<WatchKey,Path> keys;
@@ -102,7 +102,7 @@ public class WatchDir {
 
                 WatchEvent.Kind kind = event.kind();
                 if (kind == OVERFLOW) {
-                    System.err.println("Overflow of events occured");
+                    System.err.println("Overflow of events occurred");
                     System.exit(1);
                 }
                 // Context for directory entry event is the file name of entry
@@ -159,6 +159,94 @@ public class WatchDir {
         boolean recursive = true;
         // register directory and process its events
         Path dir = Paths.get(GoogleDriveServices.HOME_DIR);
-        new WatchDir(dir, recursive).processEvents();
+        WatchDir wd = new WatchDir(dir, recursive);
+        Thread watchThread = new Thread(wd);
+        watchThread.start();
+//        new WatchDir(dir, recursive).processEvents();
+    }
+
+    @Override
+    public void run() {
+
+        while(true){
+            WatchKey key;
+            try {
+                key = watcher.take();
+            } catch (InterruptedException x) {
+                System.out.println("Stopping Directory watch -- Application is offline!");
+                return;
+            }
+
+            Path dir = keys.get(key);
+            if (dir == null) {
+                System.err.println("WatchKey not recognized!!");
+                continue;
+            }
+
+            for (WatchEvent<?> event: key.pollEvents()) {
+
+                WatchEvent.Kind kind = event.kind();
+                if (kind == OVERFLOW) {
+                    System.err.println("Overflow of events occurred");
+                    System.exit(1);
+                }
+                // Context for directory entry event is the file name of entry
+                WatchEvent<Path> ev = cast(event);
+                Path name = ev.context();
+                Path child = dir.resolve(name);
+                System.out.format("%s: %s\n", event.kind().name(), child);
+
+                switch (event.kind().name()){
+
+                    case "ENTRY_CREATE":
+                        System.out.println("Created some file");
+                        try {
+                            DBWrite.insertFile(child.toString(), name.toString(), "ENTRY_CREATE");
+                        } catch (SQLException e) {
+                            e.printStackTrace();
+                        }
+                        break;
+
+                    case "ENTRY_DELETE":
+                        System.out.println("Deleted some file");
+                        try {
+                            DBWrite.updateFileLocalStatus(child.toString(), "ENTRY_DELETE");
+                        } catch (SQLException e) {
+                            e.printStackTrace();
+                        }
+                        break;
+
+                    case "ENTRY_MODIFY":
+                        System.out.println("Modified some file");
+                        try {
+                            DBWrite.updateFileLocalStatus(child.toString(), "ENTRY_MODIFY");
+                        } catch (SQLException e) {
+                            e.printStackTrace();
+                        }
+                        break;
+
+                }
+
+
+                if (recursive && (kind == ENTRY_CREATE)) {
+                    try {
+                        if (Files.isDirectory(child, NOFOLLOW_LINKS)) {
+                            registerAll(child);
+                        }
+                    } catch (IOException x) {
+                        x.printStackTrace();
+                    }
+                }
+            }
+            // reset key and remove from set if directory no longer accessible
+            boolean valid = key.reset();
+            if (!valid) {
+                keys.remove(key);
+                // all directories are inaccessible
+                if (keys.isEmpty()) {
+                    break;
+                }
+            }
+        }
     }
 }

@@ -10,6 +10,7 @@ import com.iamprem.goodrive.main.App;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Date;
@@ -88,11 +89,19 @@ public class DBWrite {
         String remoteName = localName;
         Connection con = App.conn;
         Statement stmt = con.createStatement();
-        String sql = "INSERT INTO files (id, localname, remotename, localpath, parentid, remotestatus, localstatus, " +
-                "localmodified, mimetype) " +
-                "VALUES (null, '"+localName+"', '"+remoteName+"', '"+localPath+"', null, null, '"+localStatus
-                +"',"+new Date().getTime()+", null );";
-        stmt.executeUpdate(sql);
+
+        String sql1 = "SELECT * FROM files WHERE localpath = '"+localPath+"';";
+        ResultSet rs = stmt.executeQuery(sql1);
+
+        if (rs.next()){
+            updateFileLocalStatus(localPath, localStatus);
+        } else{
+            String sql = "INSERT INTO files (id, localname, remotename, localpath, parentid, remotestatus, localstatus, " +
+                    "localmodified, mimetype) " +
+                    "VALUES (null, '"+localName+"', '"+remoteName+"', '"+localPath+"', null, null, '"+localStatus
+                    +"',"+new Date().getTime()+", null );";
+            stmt.executeUpdate(sql);
+        }
         stmt.close();
     }
 
