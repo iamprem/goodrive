@@ -115,6 +115,7 @@ public class WatchDir {
 
                     case "ENTRY_CREATE":
                         System.out.println("Created some file");
+                        DBWrite.insertFile(child.toString(), name.toString(), "ENTRY_CREATE");
                         break;
 
                     case "ENTRY_DELETE":

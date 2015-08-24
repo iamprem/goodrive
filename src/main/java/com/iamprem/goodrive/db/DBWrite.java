@@ -83,5 +83,18 @@ public class DBWrite {
 
     }
 
+    public static void insertFile(String localPath, String localName, String localStatus) throws SQLException {
+
+        String remoteName = localName;
+        Connection con = App.conn;
+        Statement stmt = con.createStatement();
+        String sql = "INSERT INTO files (id, localname, remotename, localpath, parentid, remotestatus, localstatus, " +
+                "localmodified, mimetype) " +
+                "VALUES (null, '"+localName+"', '"+remoteName+"', '"+localPath+"', null, null, '"+localStatus
+                +"',"+new Date().getTime()+", null );";
+        stmt.executeUpdate(sql);
+        stmt.close();
+    }
+
 
 }
