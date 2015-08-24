@@ -12,6 +12,7 @@ import java.nio.file.Files;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -57,7 +58,7 @@ public class DBWrite {
         stmt.close();
     }
 
-    public static void updateFile(FilesMeta fm) throws SQLException {
+    public static void updateFileModified(FilesMeta fm) throws SQLException {
 
         String id = fm.getId();
         Connection con = App.conn;
@@ -67,4 +68,20 @@ public class DBWrite {
         stmt.close();
 
     }
+
+    //Only for ENTRY_MODIFY or ENTRY_DELETE
+    public static void updateFileLocalStatus(String localPath, String localStatus) throws SQLException {
+
+        Connection con = App.conn;
+        Statement stmt = con.createStatement();
+        String sql = "UPDATE files SET localstatus = '"+localStatus+"', localmodified = '"+new Date().getTime()
+                +"' WHERE localpath = '"+localPath+"';";
+
+        stmt.executeUpdate(sql);
+        stmt.close();
+
+
+    }
+
+
 }

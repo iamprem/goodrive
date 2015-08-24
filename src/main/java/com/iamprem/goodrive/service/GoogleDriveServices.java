@@ -295,7 +295,7 @@ public class GoogleDriveServices {
 //                            Attributes.writeUserDefinedBatch(Paths.get(localFile.getLocalPath()), remoteFile);
 //                            Attributes.writeBasic(Paths.get(localFile.getLocalPath()), remoteFile);
                             localFile.setLocalModified(change.getModificationDate().getValue());
-                            DBWrite.updateFile(localFile);
+                            DBWrite.updateFileModified(localFile);
 
                         }
                     }
