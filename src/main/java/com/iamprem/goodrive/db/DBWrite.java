@@ -9,6 +9,7 @@ import com.iamprem.goodrive.main.App;
 
 import javax.print.DocFlavor;
 import java.io.IOException;
+import java.nio.file.FileSystem;
 import java.nio.file.Files;
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -85,6 +86,27 @@ public class DBWrite {
 
     }
 
+    public static void updateFileTreeLocalStatus(String localPath, String localStatus) throws SQLException {
+
+        Connection con = App.conn;
+        Statement stmt = con.createStatement();
+        String sql = "SELECT mimetype FROM files WHERE localpath = '"+localPath+"';";
+        ResultSet rs = stmt.executeQuery(sql);
+
+        if (rs.next() && rs.getString("mimetype").equals("application/vnd.google-apps.folder")){
+
+            String sql1 = "SELECT localpath FROM files WHERE localpath LIKE '"+localPath+java.io.File.separator+"%';";
+            ResultSet rs1 = stmt.executeQuery(sql1);
+            if (rs1.next()){
+                do {
+                    updateFileLocalStatus(rs1.getString("localpath"),localStatus);
+                }while(rs1.next());
+            }
+        }
+        updateFileLocalStatus(localPath, localStatus);
+
+    }
+
     public static void insertFile(String localPath, String localName, String localStatus) throws SQLException {
 
         String remoteName = localName;
@@ -107,11 +129,23 @@ public class DBWrite {
     }
 
 
+
     public static void deleteFile(String localpath) throws SQLException {
 
         Connection con = App.conn;
         Statement stmt = con.createStatement();
         String sql = "DELETE FROM files WHERE localpath = '"+localpath+"';";
+        stmt.executeUpdate(sql);
+        stmt.close();
+
+    }
+
+    //Delete temp files
+    public static void deleteFile() throws SQLException {
+
+        Connection con = App.conn;
+        Statement stmt = con.createStatement();
+        String sql = "DELETE FROM files WHERE id IS NULL AND localstatus = 'ENTRY_DELETE';";
         stmt.executeUpdate(sql);
         stmt.close();
 

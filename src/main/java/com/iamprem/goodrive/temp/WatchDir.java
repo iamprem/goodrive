@@ -70,8 +70,7 @@ public class WatchDir implements Runnable{
         Files.walkFileTree(start, new SimpleFileVisitor<Path>() {
             @Override
             public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs)
-                    throws IOException
-            {
+                    throws IOException {
                 register(dir);
                 return FileVisitResult.CONTINUE;
             }
@@ -79,6 +78,10 @@ public class WatchDir implements Runnable{
     }
 
 
+    private void markDeleteAll(final Path start) throws IOException, SQLException {
+
+        DBWrite.updateFileTreeLocalStatus(start.toString(), ENTRY_DELETE.name());
+    }
 
     /**
      * Process all events for keys queued to the watcher
@@ -158,13 +161,13 @@ public class WatchDir implements Runnable{
 
     public static void main(String[] args) throws IOException, SQLException {
 
-//        boolean recursive = true;
-//        Path dir = Paths.get(GoogleDriveServices.HOME_DIR);
-//        WatchDir wd = new WatchDir(dir, recursive);
-//        Thread watchThread = new Thread(wd);
-//        watchThread.start();
-        Drive service = Authenticate.getDriveService();
-        GoogleDriveServices.uploadDeleted(service);
+        boolean recursive = true;
+        Path dir = Paths.get(GoogleDriveServices.HOME_DIR);
+        WatchDir wd = new WatchDir(dir, recursive);
+        Thread watchThread = new Thread(wd);
+        watchThread.start();
+//        Drive service = Authenticate.getDriveService();
+//        GoogleDriveServices.uploadDeleted(service);
 
     }
 
@@ -204,6 +207,9 @@ public class WatchDir implements Runnable{
                     case "ENTRY_CREATE":
                         System.out.println("Created some file");
                         try {
+                            if (Files.isDirectory(child, NOFOLLOW_LINKS)){
+                                //insert its subdirectory files to db aswell
+                            }
                             DBWrite.insertFile(child.toString(), name.toString(), "ENTRY_CREATE");
                         } catch (SQLException e) {
                             e.printStackTrace();
@@ -213,8 +219,10 @@ public class WatchDir implements Runnable{
                     case "ENTRY_DELETE":
                         System.out.println("Deleted some file");
                         try {
-                            DBWrite.updateFileLocalStatus(child.toString(), "ENTRY_DELETE");
+                            markDeleteAll(child);
                         } catch (SQLException e) {
+                            e.printStackTrace();
+                        } catch (IOException e) {
                             e.printStackTrace();
                         }
                         break;

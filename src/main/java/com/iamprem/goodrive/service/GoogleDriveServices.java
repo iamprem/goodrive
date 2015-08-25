@@ -384,7 +384,7 @@ public class GoogleDriveServices {
         return filePath;
     }
 
-
+    //Delete files in the remote based on local delete time.
     public static void uploadDeleted(Drive service) throws SQLException {
 
         ArrayList<FilesMeta> fmList = DBRead.readFileDeleted();
@@ -409,9 +409,7 @@ public class GoogleDriveServices {
                 DBWrite.deleteFile(fm.getLocalPath());
             }
         }
-
-
-
+        DBWrite.deleteFile();
     }
 
     public static void uploadModified(){
