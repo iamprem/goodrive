@@ -1,6 +1,8 @@
 package com.iamprem.goodrive.temp;
 
+import com.google.api.services.drive.Drive;
 import com.iamprem.goodrive.db.DBWrite;
+import com.iamprem.goodrive.service.Authenticate;
 import com.iamprem.goodrive.service.GoogleDriveServices;
 
 import java.io.IOException;
@@ -156,13 +158,14 @@ public class WatchDir implements Runnable{
 
     public static void main(String[] args) throws IOException, SQLException {
 
-        boolean recursive = true;
-        // register directory and process its events
-        Path dir = Paths.get(GoogleDriveServices.HOME_DIR);
-        WatchDir wd = new WatchDir(dir, recursive);
-        Thread watchThread = new Thread(wd);
-        watchThread.start();
-//        new WatchDir(dir, recursive).processEvents();
+//        boolean recursive = true;
+//        Path dir = Paths.get(GoogleDriveServices.HOME_DIR);
+//        WatchDir wd = new WatchDir(dir, recursive);
+//        Thread watchThread = new Thread(wd);
+//        watchThread.start();
+        Drive service = Authenticate.getDriveService();
+        GoogleDriveServices.uploadDeleted(service);
+
     }
 
     @Override

@@ -209,7 +209,7 @@ public class GoogleDriveServices {
     }
 
     /**
-     * Retrieve a list of Change resources.
+     * Retrieve a list of Change resources from Drive.
      *
      * @param service Drive API service instance.
      * @param startChangeId ID of the change to start retrieving subsequent changes from or {@code null}.
@@ -316,119 +316,6 @@ public class GoogleDriveServices {
             AppUtils.addProperty(GoogleDriveServices.APP_PROP_PATH, "LastSynced", String.valueOf(change.getModificationDate().getValue()));
         }
 
-        /*
-        String lastSyncString = DateUtils.long2UTCString(AppUtils.getLastSynced(GoogleDriveServices.APP_PROP_PATH));
-        Stack<CurrentDirectory> dirLevel = new Stack<CurrentDirectory>();
-        // Initial Level as 'root'
-        dirLevel.push(new CurrentDirectory("root", HOME_DIR, "GooDrive"));
-
-        while (!dirLevel.isEmpty()) {
-            CurrentDirectory curDir = dirLevel.pop();
-            FileList result = service.files().list().setQ("'" + curDir.getId() + "' in parents and modifiedDate > '"+lastSyncString+"'").execute();
-            List<File> files = result.getItems();
-
-            if (files == null || files.size() == 0) {
-                System.out.println("No latest modification in : " + curDir.getTitle());
-
-            } else {
-                OutputStream os = null;
-                for (File file : files) {
-
-                    if (!MIMETYPES_SPECIAL.contains(file.getMimeType())) {
-
-                        String filePath = trimFileName(file, curDir);
-                        java.io.File diskFile = new java.io.File(filePath);
-
-                        if (diskFile.exists() && diskFile.isFile()) {
-                            Path path = diskFile.toPath();
-                            String id = Attributes.readUserDefined(path, "id");
-                            if (id.equals(file.getId())) {
-
-                                String md5CheckSum = Attributes.readUserDefined(path, "md5CheckSum");
-                                Long modifiedDate = Files.getLastModifiedTime(path).toMillis();
-                                System.out.println("Local : " + modifiedDate + "  Remote : "
-                                        + file.getModifiedDate().getValue());
-
-                                if (!md5CheckSum.equals(file.getMd5Checksum())
-                                        || Attributes.compareModfDate(file.getModifiedDate().getValue(), modifiedDate)) {
-                                    os = new FileOutputStream(diskFile);
-                                    InputStream is = service.files().get(file.getId()).executeMediaAsInputStream();
-                                    int read = 0;
-                                    byte[] bytes = new byte[1024];
-                                    while ((read = is.read(bytes)) != -1) {
-                                        os.write(bytes, 0, read);
-                                    }
-                                    os.close();
-                                    System.out.println(file.getTitle() + " - Downloaded the latest version!");
-                                } else {
-                                    // NOT MODIFIED
-                                    System.out.println(file.getTitle() + " -- NOT MODIFIED");
-                                }
-
-                            } else {
-                                // TODO Duplicate file with same name but
-                                // different id. Enumerate the file name
-                                diskFile = enumDuplicates(service, file, filePath);
-                            }
-
-                        } else if (diskFile.exists() && diskFile.isDirectory()) {
-                            // If there is a directory in that path, then
-                            // enumerate the file and store.
-                            diskFile = enumDuplicates(service, file, filePath);
-                        } else {
-                            // No directory or file exist in the same name in
-                            // the path
-                            os = new FileOutputStream(diskFile);
-                            InputStream is = service.files().get(file.getId()).executeMediaAsInputStream();
-                            int read = 0;
-                            byte[] bytes = new byte[1024];
-                            while ((read = is.read(bytes)) != -1) {
-                                os.write(bytes, 0, read);
-                            }
-                            os.close();
-                            System.out.println(file.getTitle() + " - Done!");
-                        }
-
-                        Attributes.writeUserDefinedBatch(diskFile.toPath(), file);
-                        Attributes.writeBasic(diskFile.toPath(), file);
-
-                    } else {
-
-                        //TODO : Handle Special MIME TYPES
-                        String dirPath = null;
-                        // Check filename length is larger than 255, then
-                        // truncate it to 255
-                        if (file.getTitle().length() > 255) {
-                            String namePart = file.getTitle().substring(0, 255);
-                            dirPath = curDir.getPath() + java.io.File.separator + namePart;
-                        } else {
-                            dirPath = curDir.getPath() + java.io.File.separator + file.getTitle();
-                        }
-
-                        java.io.File dir = new java.io.File(dirPath);
-                        if (!dir.exists()) {
-                            dir.mkdirs();
-                        }
-                        CurrentDirectory newDir = new CurrentDirectory(file.getId(), dirPath, file.getTitle());
-                        dirLevel.push(newDir);
-                        Path path = dir.toPath();
-                        UserDefinedFileAttributeView userView = Files.getFileAttributeView(path,
-                                UserDefinedFileAttributeView.class);
-                        FileTime ft = FileTime.fromMillis(file.getModifiedDate().getValue());
-                        Files.setLastModifiedTime(path, ft);
-                        userView.write("id", ByteBuffer.wrap(file.getId().getBytes()));
-                        userView.write("mimeType", ByteBuffer.wrap(file.getMimeType().getBytes()));
-                        // TODO: Drive can have multiple parents
-                        // TODO: After creating the folder if we add files to
-                        // that, modified date changes. :P Expected!!!
-                        userView.write("parents", ByteBuffer.wrap(file.getParents().toString().getBytes()));
-                    }
-
-                }
-
-            }
-
-        } */
     }
 
 
@@ -495,6 +382,44 @@ public class GoogleDriveServices {
             filePath = curDir.getPath() + java.io.File.separator + driveFile.getTitle();
         }
         return filePath;
+    }
+
+
+    public static void uploadDeleted(Drive service) throws SQLException {
+
+        ArrayList<FilesMeta> fmList = DBRead.readFileDeleted();
+
+        if (fmList != null){
+            for (FilesMeta fm : fmList) {
+                File file = null;
+                try {
+                    file = service.files().get(fm.getId()).execute();
+                    if (file.getModifiedDate().getValue()/1000 <= fm.getLocalModified()/1000){
+                        //TODO REMOVES THE FILE PERMANENTLY
+                        deleteFile(service, fm.getId());
+                    } else if (!file.getLabels().getTrashed()){
+                        //TODO
+                        System.err.println("Remote has latest file. YET TO IMPLEMENT");
+                        //Download the latest
+                        continue;
+                    }
+                } catch (IOException e) {
+                    System.err.println("File "+fm.getLocalName()+" not found in Remote!");
+                }
+                DBWrite.deleteFile(fm.getLocalPath());
+            }
+        }
+
+
+
+    }
+
+    public static void uploadModified(){
+
+    }
+
+    public static void uploadCreated(){
+
     }
 
 
@@ -625,18 +550,13 @@ public class GoogleDriveServices {
     private static File updateFile(Drive service, String fileId, String newTitle, String newMimeType,
                                    String newFilePath, boolean newRevision) {
         try {
-            // First retrieve the file from the API.
             File file = service.files().get(fileId).execute();
-
-            // File's new metadata.
             file.setTitle(newTitle);
             file.setMimeType(newMimeType);
 
-            // File's new content.
             java.io.File fileContent = new java.io.File(newFilePath);
             FileContent mediaContent = new FileContent(newMimeType, fileContent);
 
-            // Send the request to the API.
             File updatedFile = service.files().update(fileId, file, mediaContent).execute();
 
             System.out.println("Updated New File: " + newFilePath);
@@ -644,6 +564,14 @@ public class GoogleDriveServices {
         } catch (IOException e) {
             System.out.println("An error occurred: " + e);
             return null;
+        }
+    }
+
+    private static void deleteFile(Drive service, String fileId) {
+        try {
+            service.files().delete(fileId).execute();
+        } catch (IOException e) {
+            System.out.println("An error occurred: " + e);
         }
     }
 }

@@ -7,6 +7,7 @@ import com.iamprem.goodrive.entity.FilesMeta;
 import com.iamprem.goodrive.filesystem.Attributes;
 import com.iamprem.goodrive.main.App;
 
+import javax.print.DocFlavor;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.sql.Connection;
@@ -105,5 +106,15 @@ public class DBWrite {
         stmt.close();
     }
 
+
+    public static void deleteFile(String localpath) throws SQLException {
+
+        Connection con = App.conn;
+        Statement stmt = con.createStatement();
+        String sql = "DELETE FROM files WHERE localpath = '"+localpath+"';";
+        stmt.executeUpdate(sql);
+        stmt.close();
+
+    }
 
 }
