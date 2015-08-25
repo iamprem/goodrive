@@ -9,8 +9,8 @@ import com.iamprem.goodrive.main.App;
 
 import javax.print.DocFlavor;
 import java.io.IOException;
-import java.nio.file.FileSystem;
-import java.nio.file.Files;
+import java.nio.file.*;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -86,7 +86,7 @@ public class DBWrite {
 
     }
 
-    public static void updateFileTreeLocalStatus(String localPath, String localStatus) throws SQLException {
+    public static void updateFileTreeLocalStatus(String localPath, String localStatus) throws SQLException, IOException {
 
         Connection con = App.conn;
         Statement stmt = con.createStatement();
@@ -95,21 +95,55 @@ public class DBWrite {
 
         if (rs.next() && rs.getString("mimetype").equals("application/vnd.google-apps.folder")){
 
-            String sql1 = "SELECT localpath FROM files WHERE localpath LIKE '"+localPath+java.io.File.separator+"%';";
-            ResultSet rs1 = stmt.executeQuery(sql1);
-            if (rs1.next()){
-                do {
-                    updateFileLocalStatus(rs1.getString("localpath"),localStatus);
-                }while(rs1.next());
-            }
-        }
-        updateFileLocalStatus(localPath, localStatus);
+            if (localStatus.equals("ENTRY_CREATE")){
 
+                Files.walkFileTree(Paths.get(localPath), new SimpleFileVisitor<Path>() {
+                    @Override
+                    public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs)
+                            throws IOException {
+                        try {
+                            insertFile(dir.toString(), dir.getFileName().toString(),"ENTRY_CREATE");
+                        } catch (SQLException e) {
+                            e.printStackTrace();
+                        }
+                        return FileVisitResult.CONTINUE;
+                    }
+
+                    @Override
+                    public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                        try {
+                            insertFile(file.toString(), file.getFileName().toString(), "ENTRY_CREATE");
+                        } catch (SQLException e) {
+                            e.printStackTrace();
+                        }
+                        return FileVisitResult.CONTINUE;
+                    }
+                });
+
+            } else if (localStatus.equals("ENTRY_DELETE")){
+                String sql1 = "SELECT localpath FROM files WHERE localpath LIKE '"+localPath+java.io.File.separator+"%';";
+                ResultSet rs1 = stmt.executeQuery(sql1);
+                if (rs1.next()){
+                    do {
+                        updateFileLocalStatus(rs1.getString("localpath"),localStatus);
+                    }while(rs1.next());
+                }
+                updateFileLocalStatus(localPath, localStatus);
+            }
+
+        } else{
+            insertFile(localPath,Paths.get(localPath).getFileName().toString(),localStatus);
+        }
+
+        stmt.close();
     }
 
+
+    // Mostly localStatus would be ENTRY_CREATE
     public static void insertFile(String localPath, String localName, String localStatus) throws SQLException {
 
         String remoteName = localName;
+        String mimeType = "";
         Connection con = App.conn;
         Statement stmt = con.createStatement();
 
@@ -119,10 +153,13 @@ public class DBWrite {
         if (rs.next()){
             updateFileLocalStatus(localPath, localStatus);
         } else{
+            if (Files.isDirectory(Paths.get(localPath))){
+                mimeType = "application/vnd.google-apps.folder";
+            }
             String sql = "INSERT INTO files (id, localname, remotename, localpath, parentid, remotestatus, localstatus, " +
                     "localmodified, mimetype) " +
                     "VALUES (null, '"+localName+"', '"+remoteName+"', '"+localPath+"', null, null, '"+localStatus
-                    +"',"+new Date().getTime()+", null );";
+                    +"',"+new Date().getTime()+", '"+mimeType+"' );";
             stmt.executeUpdate(sql);
         }
         stmt.close();

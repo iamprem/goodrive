@@ -77,11 +77,17 @@ public class WatchDir implements Runnable{
         });
     }
 
+    private void markCreateAll(final Path start) throws IOException, SQLException {
+//        DBWrite.insertFile(start.toString(), name.toString(), "ENTRY_CREATE");
+        DBWrite.updateFileTreeLocalStatus(start.toString(), ENTRY_CREATE.name());
+    }
 
-    private void markDeleteAll(final Path start) throws IOException, SQLException {
+    //On deleting a directory, this method marks all its children localstatus to ENTITY_DELETE
+    private synchronized void markDeleteAll(final Path start) throws IOException, SQLException {
 
         DBWrite.updateFileTreeLocalStatus(start.toString(), ENTRY_DELETE.name());
     }
+
 
     /**
      * Process all events for keys queued to the watcher
@@ -207,10 +213,9 @@ public class WatchDir implements Runnable{
                     case "ENTRY_CREATE":
                         System.out.println("Created some file");
                         try {
-                            if (Files.isDirectory(child, NOFOLLOW_LINKS)){
-                                //insert its subdirectory files to db aswell
-                            }
-                            DBWrite.insertFile(child.toString(), name.toString(), "ENTRY_CREATE");
+                            markCreateAll(child);
+                        } catch (IOException e) {
+                            e.printStackTrace();
                         } catch (SQLException e) {
                             e.printStackTrace();
                         }
