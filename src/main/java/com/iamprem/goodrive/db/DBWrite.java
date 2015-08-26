@@ -61,6 +61,29 @@ public class DBWrite {
         stmt.close();
     }
 
+    public static void updateFile(FilesMeta fm) throws SQLException {
+
+        Connection con = App.conn;
+        Statement stmt = con.createStatement();
+        String uQuery;
+
+        //Update the local status after uploading to remote
+        uQuery = "UPDATE files SET id = '"+fm.getId()+"', parentid = '"+fm.getParentId()+"', remotestatus = '"
+                +fm.getRemoteStatus()+"', localstatus='"+fm.getLocalStatus()+"', localmodified="+fm.getLocalModified()
+                +", mimetype='"+fm.getMimeType()+"' WHERE localpath = '"+fm.getLocalPath()+"' AND localmodified/1000 <= "+
+                fm.getLocalModified()+"";
+        stmt.executeUpdate(uQuery);
+
+        //Even after the upload local has the new version which needs to be uploaded. So not modifying the local status
+        uQuery = "UPDATE files SET id = '"+fm.getId()+"', parentid = '"+fm.getParentId()+"', remotestatus = '"
+                +fm.getRemoteStatus()+"', localmodified="+fm.getLocalModified()
+                +", mimetype='"+fm.getMimeType()+"' WHERE localpath = '"+fm.getLocalPath()+"' AND localmodified/1000 > "+
+                fm.getLocalModified()+"";
+        stmt.executeUpdate(uQuery);
+
+
+    }
+
     public static void updateFileModified(FilesMeta fm) throws SQLException {
 
         String id = fm.getId();
@@ -86,6 +109,7 @@ public class DBWrite {
 
     }
 
+    //Update deleted or created file/sub-files if already present in db or create if not!
     public static void updateFileTreeLocalStatus(String localPath, String localStatus) throws SQLException, IOException {
 
         Connection con = App.conn;
@@ -108,7 +132,6 @@ public class DBWrite {
                         }
                         return FileVisitResult.CONTINUE;
                     }
-
                     @Override
                     public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
                         try {
@@ -143,11 +166,12 @@ public class DBWrite {
     public static void insertFile(String localPath, String localName, String localStatus) throws SQLException {
 
         String remoteName = localName;
-        String mimeType = "";
+        String mimeType;
         Connection con = App.conn;
         Statement stmt = con.createStatement();
 
         String sql1 = "SELECT * FROM files WHERE localpath = '"+localPath+"';";
+        String sql;
         ResultSet rs = stmt.executeQuery(sql1);
 
         if (rs.next()){
@@ -155,11 +179,16 @@ public class DBWrite {
         } else{
             if (Files.isDirectory(Paths.get(localPath))){
                 mimeType = "application/vnd.google-apps.folder";
+                sql = "INSERT INTO files (id, localname, remotename, localpath, parentid, remotestatus, localstatus, " +
+                        "localmodified, mimetype) " +
+                        "VALUES (null, '"+localName+"', '"+remoteName+"', '"+localPath+"', null, null, '"+localStatus
+                        +"',"+new Date().getTime()+", '"+mimeType+"' );";
+            } else{
+                sql = "INSERT INTO files (id, localname, remotename, localpath, parentid, remotestatus, localstatus, " +
+                        "localmodified, mimetype) " +
+                        "VALUES (null, '"+localName+"', '"+remoteName+"', '"+localPath+"', null, null, '"+localStatus
+                        +"',"+new Date().getTime()+", null );";
             }
-            String sql = "INSERT INTO files (id, localname, remotename, localpath, parentid, remotestatus, localstatus, " +
-                    "localmodified, mimetype) " +
-                    "VALUES (null, '"+localName+"', '"+remoteName+"', '"+localPath+"', null, null, '"+localStatus
-                    +"',"+new Date().getTime()+", '"+mimeType+"' );";
             stmt.executeUpdate(sql);
         }
         stmt.close();
@@ -173,6 +202,7 @@ public class DBWrite {
         Statement stmt = con.createStatement();
         String sql = "DELETE FROM files WHERE localpath = '"+localpath+"';";
         stmt.executeUpdate(sql);
+        System.out.println("Deleted in DB and REMOTE: "+localpath );
         stmt.close();
 
     }
@@ -184,6 +214,7 @@ public class DBWrite {
         Statement stmt = con.createStatement();
         String sql = "DELETE FROM files WHERE id IS NULL AND localstatus = 'ENTRY_DELETE';";
         stmt.executeUpdate(sql);
+        System.out.println("Deleted temp files from DB");
         stmt.close();
 
     }

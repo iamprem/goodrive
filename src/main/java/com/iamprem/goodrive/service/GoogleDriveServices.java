@@ -262,6 +262,7 @@ public class GoogleDriveServices {
                             //Handle multiple parents
                             System.err.println("Handle multiple parents");
                         } else{
+                            //TODO check with the local file's last change time in db - DELETE or UPDATE
                             String parent = remoteFile.getParents().get(0).getId();
                             if (parent.equals(localFile.getParentId())){
 
@@ -309,7 +310,7 @@ public class GoogleDriveServices {
                 }
             } else{
                 //IF the file is null, this is created in remote and new to download to local
-
+                System.err.println("Download the remotely created file to Local- YET TO IMPLEMENT");
             }
             largestChangeId = change.getId();
             AppUtils.addProperty(GoogleDriveServices.APP_PROP_PATH,"largestChangeId", change.getId().toString());
@@ -385,6 +386,7 @@ public class GoogleDriveServices {
     }
 
     //Delete files in the remote based on local delete time.
+    // # 1
     public static void uploadDeleted(Drive service) throws SQLException {
 
         ArrayList<FilesMeta> fmList = DBRead.readFileDeleted();
@@ -404,7 +406,7 @@ public class GoogleDriveServices {
                         continue;
                     }
                 } catch (IOException e) {
-                    System.err.println("File "+fm.getLocalName()+" not found in Remote!");
+                    System.err.println("File " + fm.getLocalName() + " not found in Remote!");
                 }
                 DBWrite.deleteFile(fm.getLocalPath());
             }
@@ -412,11 +414,61 @@ public class GoogleDriveServices {
         DBWrite.deleteFile();
     }
 
-    public static void uploadModified(){
+    //# 2
+    public static void uploadCreated(Drive service) throws SQLException {
 
+        ArrayList<FilesMeta> fmList = DBRead.readFileCreated();
+
+        if (fmList != null) {
+            for (FilesMeta fm : fmList) {
+                File file;
+                try {
+                    if (fm.getId() != null) {
+                        file = service.files().get(fm.getId()).execute();
+                        if (file.getModifiedDate().getValue()/1000 <= fm.getLocalModified()/1000){
+                            file = updateFile(service, file.getId(), fm.getLocalName(),fm.getMimeType(),fm.getLocalPath(),false);
+                            fm.setLocalModified(file.getModifiedDate().getValue());
+                            fm.setLocalStatus("Synced");
+                            fm.setRemoteStatus("Synced");
+                            DBWrite.updateFile(fm);
+                            Attributes.writeBasic(Paths.get(fm.getLocalPath()),file);
+                            Attributes.writeUserDefinedBatch(Paths.get(fm.getLocalPath()),file);
+                        } else{
+                            System.err.println("Remote has the latest, Let the retriveChanges handle this");
+                        }
+
+                    } else {
+                        //New file/folder in local
+                        String parent = DBRead.getParentId(fm.getLocalPath());
+                        if (fm.getMimeType() != null && fm.getMimeType().equals("application/vnd.google-apps.folder")){
+                            file = insertFolder(service,fm.getLocalName(),parent,
+                                    fm.getMimeType(),fm.getLocalPath());
+
+                        } else{
+                            file = insertFile(service, fm.getLocalName(), parent,
+                                    Files.probeContentType(Paths.get(fm.getLocalPath())), fm.getLocalPath());
+                        }
+                        fm.setId(file.getId());
+                        fm.setParentId(file.getParents().get(0).getId());
+                        fm.setRemoteStatus("Synced");
+                        fm.setLocalStatus("Synced");
+                        fm.setLocalModified(file.getModifiedDate().getValue());
+                        fm.setMimeType(file.getMimeType());
+                        DBWrite.updateFile(fm);
+                        Attributes.writeBasic(Paths.get(fm.getLocalPath()), file);
+                        Attributes.writeUserDefinedBatch(Paths.get(fm.getLocalPath()), file);
+
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+            }
+        }
     }
 
-    public static void uploadCreated(){
+    //# 3
+    public static void uploadModified(){
 
     }
 
@@ -536,7 +588,6 @@ public class GoogleDriveServices {
 
         try {
             File file = service.files().insert(body).execute();
-
             System.out.println("Inserted New Folder: " + filePath);
             return file;
         } catch (IOException e) {
