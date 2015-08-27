@@ -283,7 +283,7 @@ public class GoogleDriveServices {
                                 } else{
                                     //Could be a directory
                                     System.err.println("Could be a directory or other special type");
-                                    Attributes.writeUserDefinedBatchDir(Paths.get(localFile.getLocalPath()), remoteFile);
+                                    Attributes.writeUserDefinedBatch(Paths.get(localFile.getLocalPath()), remoteFile);
                                     Attributes.writeBasic(Paths.get(localFile.getLocalPath()), remoteFile);
                                 }
 
@@ -426,7 +426,10 @@ public class GoogleDriveServices {
                     if (fm.getId() != null) {
                         file = service.files().get(fm.getId()).execute();
                         if (file.getModifiedDate().getValue()/1000 <= fm.getLocalModified()/1000){
-                            file = updateFile(service, file.getId(), fm.getLocalName(),fm.getMimeType(),fm.getLocalPath(),false);
+                            file = (fm.getMimeType().equals("application/vnd.google-apps.folder")?
+                                    updateFolder(service, file.getId(), fm.getLocalName(),fm.getMimeType(),fm.getLocalPath(),false)
+                                    :updateFile(service, file.getId(), fm.getLocalName(),fm.getMimeType(),fm.getLocalPath(),false)
+                            );
                             fm.setLocalModified(file.getModifiedDate().getValue());
                             fm.setLocalStatus("Synced");
                             fm.setRemoteStatus("Synced");
@@ -493,7 +496,7 @@ public class GoogleDriveServices {
                             "application/vnd.google-apps.folder",
                             dir.toString());
                     Attributes.writeBasic(dir,insertedDir);
-                    Attributes.writeUserDefinedBatchDir(dir, insertedDir);
+                    Attributes.writeUserDefinedBatch(dir, insertedDir);
                 }
 
                 return FileVisitResult.CONTINUE;
@@ -608,7 +611,7 @@ public class GoogleDriveServices {
 
             File updatedFile = service.files().update(fileId, file, mediaContent).execute();
 
-            System.out.println("Updated New File: " + newFilePath);
+            System.out.println("Updated the File: " + newFilePath);
             return updatedFile;
         } catch (IOException e) {
             System.out.println("An error occurred: " + e);
@@ -616,6 +619,24 @@ public class GoogleDriveServices {
         }
     }
 
+    private static File updateFolder(Drive service, String fileId, String newTitle, String newMimeType,
+                                     String newFilePath, boolean newRevision){
+        try {
+            File file = service.files().get(fileId).execute();
+            file.setTitle(newTitle);
+            file.setMimeType(newMimeType);
+
+            java.io.File fileContent = new java.io.File(newFilePath);
+
+            File updatedFile = service.files().update(fileId, file).execute();
+
+            System.out.println("Updated the Folder: " + newFilePath);
+            return updatedFile;
+        } catch (IOException e) {
+            System.out.println("An error occurred: " + e);
+            return null;
+        }
+    }
     private static void deleteFile(Drive service, String fileId) {
         try {
             service.files().delete(fileId).execute();

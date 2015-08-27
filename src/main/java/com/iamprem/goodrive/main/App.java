@@ -47,7 +47,9 @@ public class App {
             }
 
             //Start Upload
-            GoogleDriveServices.upload(service);
+
+            //GoogleDriveServices.upload(service); OLD WAY
+
         }
         //After sync set lastsync time as before the download starts
 //        AppUtils.addProperty(GoogleDriveServices.APP_PROP_PATH, "LastSynced", lastSyncVal);

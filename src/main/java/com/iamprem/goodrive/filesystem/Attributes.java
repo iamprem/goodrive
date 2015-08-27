@@ -60,10 +60,16 @@ public class Attributes {
     public static void writeUserDefinedBatch(Path path, File file) {
         UserDefinedFileAttributeView view = Files.getFileAttributeView(path, UserDefinedFileAttributeView.class);
         try {
-            view.write("id", ByteBuffer.wrap(file.getId().getBytes()));
-            view.write("md5CheckSum", ByteBuffer.wrap(file.getMd5Checksum().getBytes()));
-            view.write("mimeType", ByteBuffer.wrap(file.getMimeType().getBytes()));
-            view.write("parents", ByteBuffer.wrap(file.getParents().toString().getBytes()));
+            if (!path.toFile().isDirectory()){
+                view.write("id", ByteBuffer.wrap(file.getId().getBytes()));
+                view.write("md5CheckSum", ByteBuffer.wrap(file.getMd5Checksum().getBytes()));
+                view.write("mimeType", ByteBuffer.wrap(file.getMimeType().getBytes()));
+                view.write("parents", ByteBuffer.wrap(file.getParents().toString().getBytes()));
+            } else{
+                view.write("id", ByteBuffer.wrap(file.getId().getBytes()));
+                view.write("mimeType", ByteBuffer.wrap(file.getMimeType().getBytes()));
+                view.write("parents", ByteBuffer.wrap(file.getParents().toString().getBytes()));
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -72,6 +78,7 @@ public class Attributes {
 
 
     //Set user defined attribute for folder, coz it doesn't have checksum value
+    //UPDATE replaced this method functionality with its sibling. So deprecated!
     public static void writeUserDefinedBatchDir(Path path, File file) {
         UserDefinedFileAttributeView view = Files.getFileAttributeView(path, UserDefinedFileAttributeView.class);
         try {

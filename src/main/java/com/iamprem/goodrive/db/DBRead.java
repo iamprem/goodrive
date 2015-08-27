@@ -72,10 +72,10 @@ public class DBRead {
         String parent = Paths.get(childLocalPath).getParent().toString();
         FilesMeta fm = readFileByLocalPath(parent);
         if (fm != null){
-            if (fm.getParentId() != null){
-                return fm.getParentId();
+            if (fm.getId() != null){
+                return fm.getId();
             } else{
-                System.err.println("Parent doesn't exist. Serious ERROR!");
+                System.err.println("Parent could be created newly. Serious ERROR!");
                 return null;
             }
         } else {

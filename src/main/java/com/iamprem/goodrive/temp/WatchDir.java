@@ -167,13 +167,14 @@ public class WatchDir implements Runnable{
 
     public static void main(String[] args) throws IOException, SQLException {
 
-        boolean recursive = true;
-        Path dir = Paths.get(GoogleDriveServices.HOME_DIR);
-        WatchDir wd = new WatchDir(dir, recursive);
-        Thread watchThread = new Thread(wd);
-        watchThread.start();
-//        Drive service = Authenticate.getDriveService();
-//        GoogleDriveServices.uploadDeleted(service);
+//        boolean recursive = true;
+//        Path dir = Paths.get(GoogleDriveServices.HOME_DIR);
+//        WatchDir wd = new WatchDir(dir, recursive);
+//        Thread watchThread = new Thread(wd);
+//        watchThread.start();
+        Drive service = Authenticate.getDriveService();
+        GoogleDriveServices.uploadDeleted(service);
+        GoogleDriveServices.uploadCreated(service);
 
     }
 
