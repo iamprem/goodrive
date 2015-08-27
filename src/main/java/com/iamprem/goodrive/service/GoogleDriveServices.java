@@ -250,7 +250,7 @@ public class GoogleDriveServices {
             FilesMeta localFile = DBRead.readFileById(change.getFileId());
 
             if (localFile != null){
-                if (localFile.getLocalModified() < change.getModificationDate().getValue()){
+                if (localFile.getLocalModified()/1000 < change.getModificationDate().getValue()/1000){
                     //Update/delete the file from remote -> local
                     if (change.getDeleted()){
                         LocalFS.deleteFile(localFile.getLocalPath());
@@ -438,6 +438,7 @@ public class GoogleDriveServices {
                             Attributes.writeUserDefinedBatch(Paths.get(fm.getLocalPath()),file);
                         } else{
                             System.err.println("Remote has the latest, Let the retriveChanges handle this");
+                            System.exit(1);
                         }
 
                     } else {
@@ -471,7 +472,61 @@ public class GoogleDriveServices {
     }
 
     //# 3
-    public static void uploadModified(){
+    public static void uploadModified(Drive service) throws SQLException {
+
+        ArrayList<FilesMeta> fmList = DBRead.readFileModified();
+
+        if (fmList != null) {
+            for (FilesMeta fm : fmList) {
+                File file;
+                try {
+                    if (fm.getId() != null) {
+                        file = service.files().get(fm.getId()).execute();
+                        if (file.getModifiedDate().getValue()/1000 <= fm.getLocalModified()/1000){
+                            file = (fm.getMimeType().equals("application/vnd.google-apps.folder")?
+                                    updateFolder(service, file.getId(), fm.getLocalName(),fm.getMimeType(),fm.getLocalPath(),false)
+                                    :updateFile(service, file.getId(), fm.getLocalName(),fm.getMimeType(),fm.getLocalPath(),false)
+                            );
+                            fm.setLocalModified(file.getModifiedDate().getValue());
+                            fm.setLocalStatus("Synced");
+                            fm.setRemoteStatus("Synced");
+                            DBWrite.updateFile(fm);
+                            Attributes.writeBasic(Paths.get(fm.getLocalPath()),file);
+                            Attributes.writeUserDefinedBatch(Paths.get(fm.getLocalPath()),file);
+                        } else{
+                            System.err.println("Remote has the latest, Let the retriveChanges handle this");
+                            System.exit(1);
+                        }
+
+                    } else {
+                        //New file/folder in local
+                        String parent = DBRead.getParentId(fm.getLocalPath());
+                        if (fm.getMimeType() != null && fm.getMimeType().equals("application/vnd.google-apps.folder")){
+                            file = insertFolder(service,fm.getLocalName(),parent,
+                                    fm.getMimeType(),fm.getLocalPath());
+
+                        } else{
+                            file = insertFile(service, fm.getLocalName(), parent,
+                                    Files.probeContentType(Paths.get(fm.getLocalPath())), fm.getLocalPath());
+                        }
+                        fm.setId(file.getId());
+                        fm.setParentId(file.getParents().get(0).getId());
+                        fm.setRemoteStatus("Synced");
+                        fm.setLocalStatus("Synced");
+                        fm.setLocalModified(file.getModifiedDate().getValue());
+                        fm.setMimeType(file.getMimeType());
+                        DBWrite.updateFile(fm);
+                        Attributes.writeBasic(Paths.get(fm.getLocalPath()), file);
+                        Attributes.writeUserDefinedBatch(Paths.get(fm.getLocalPath()), file);
+
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+            }
+        }
+
 
     }
 

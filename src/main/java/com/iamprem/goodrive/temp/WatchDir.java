@@ -175,6 +175,7 @@ public class WatchDir implements Runnable{
         Drive service = Authenticate.getDriveService();
         GoogleDriveServices.uploadDeleted(service);
         GoogleDriveServices.uploadCreated(service);
+        GoogleDriveServices.uploadModified(service);
 
     }
 

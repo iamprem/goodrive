@@ -130,7 +130,7 @@ public class DBRead {
         Connection con = App.conn;
         ArrayList<FilesMeta> fmList = new ArrayList<>();
         Statement stmt = con.createStatement();
-        String query = "SELECT * FROM files WHERE localstatus = 'ENTRY_MODIFY';";
+        String query = "SELECT * FROM files WHERE localstatus = 'ENTRY_MODIFY' ORDER BY LENGTH(localpath) ASC;";
         //TODO can sort the result based on TIME
         ResultSet rs = stmt.executeQuery(query);
 
