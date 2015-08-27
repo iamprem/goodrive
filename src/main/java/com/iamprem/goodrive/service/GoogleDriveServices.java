@@ -229,8 +229,6 @@ public class GoogleDriveServices {
                 changes = request.execute();
                 result.addAll(changes.getItems());
                 request.setPageToken(changes.getNextPageToken());
-                //TODO should change the property after down syncing the changes
-                //AppUtils.addProperty(APP_PROP_PATH, "largestChangeId", changes.getLargestChangeId().toString());
 
             } catch (IOException e) {
                 e.printStackTrace();
