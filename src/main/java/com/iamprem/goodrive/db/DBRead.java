@@ -124,14 +124,13 @@ public class DBRead {
 
     //Read all modified file even if they doesn't have remote copy(Files could be ENTRY_MODIFY before they even uploaded
     // to the remote.
-    // TODO SHould run after pushing the created files/folders with status ENTRY_DELETE
+    // SHould run after pushing the created files/folders with status ENTRY_DELETE
     public static ArrayList<FilesMeta> readFileModified() throws SQLException {
 
         Connection con = App.conn;
         ArrayList<FilesMeta> fmList = new ArrayList<>();
         Statement stmt = con.createStatement();
         String query = "SELECT * FROM files WHERE localstatus = 'ENTRY_MODIFY' ORDER BY LENGTH(localpath) ASC;";
-        //TODO can sort the result based on TIME
         ResultSet rs = stmt.executeQuery(query);
 
         if (rs.next()){
@@ -168,7 +167,6 @@ public class DBRead {
         ArrayList<FilesMeta> fmList = new ArrayList<>();
         Statement stmt = con.createStatement();
         String query = "SELECT * FROM files WHERE localstatus = 'ENTRY_CREATE' ORDER BY LENGTH(localpath) ASC;";
-        //TODO can sort the result based on TIME
         ResultSet rs = stmt.executeQuery(query);
 
         if (rs.next()){

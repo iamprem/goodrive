@@ -20,9 +20,8 @@ public class LocalFS {
      *         successfully
      */
 
-    // TODO: Change Desktop to Home dir
     public static String makeRootDir() {
-        java.io.File file = new java.io.File(System.getProperty("user.home") + "/Desktop/GooDrive/");
+        java.io.File file = new java.io.File(System.getProperty("user.home") + File.separator + "GooDrive");
         if (file.mkdirs()) {
             System.out.println("path created - " + file.getAbsolutePath());
         } else {

@@ -18,10 +18,6 @@ public class Attributes {
         // To restrict creating object for this class
     }
 
-    public static void readBasic(Path path, String attrName) {
-        //TODO
-    }
-
     /**
      * Read the user defined attribute from the file
      *

@@ -354,8 +354,8 @@ public class GoogleDriveServices {
                 try {
                     file = service.files().get(fm.getId()).execute();
                     if (file.getModifiedDate().getValue()/1000 <= fm.getLocalModified()/1000){
-                        //TODO REMOVES THE FILE PERMANENTLY
-                        deleteFile(service, fm.getId());
+                        //Moves the file to trash
+                        trashFile(service, file.getId());
                     } else if (!file.getLabels().getTrashed()){
                         //TODO
                         System.err.println("Remote has latest file. YET TO IMPLEMENT");
@@ -649,6 +649,8 @@ public class GoogleDriveServices {
             return null;
         }
     }
+
+    //Delete file in remote permanently
     private static void deleteFile(Drive service, String fileId) {
         try {
             service.files().delete(fileId).execute();
@@ -656,4 +658,22 @@ public class GoogleDriveServices {
             System.out.println("An error occurred: " + e);
         }
     }
+
+    /**
+     * Move a file to the trash.
+     *
+     * @param service Drive API service instance.
+     * @param fileId ID of the file to trash.
+     * @return The updated file if successful, {@code null} otherwise.
+     */
+    private static File trashFile(Drive service, String fileId) {
+        try {
+            return service.files().trash(fileId).execute();
+        } catch (IOException e) {
+            System.out.println("An error occurred: " + e);
+        }
+        return null;
+    }
+
+
 }

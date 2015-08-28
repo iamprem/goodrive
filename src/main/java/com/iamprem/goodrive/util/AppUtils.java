@@ -56,14 +56,6 @@ public class AppUtils {
 
     }
 
-    //TODO Not used anywhere
-    public static void setLastSynced(String path) throws IOException {
-        Properties prop = new Properties();
-        prop.load(new FileInputStream(path));
-        prop.setProperty("LastSynced", String.valueOf(new Date().getTime()));
-        setProperties(path, prop);
-    }
-
     public static void addProperty(String path, String propName, String propValue) throws IOException {
         Properties prop = new Properties();
         prop.load(new FileInputStream(path));
