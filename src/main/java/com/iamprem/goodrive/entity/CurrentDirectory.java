@@ -2,6 +2,7 @@ package com.iamprem.goodrive.entity;
 
 /**
  * Created by prem on 8/17/15.
+ * STUPIDEST DATA STRUCTURE EVER USED IN THIS PROJECT. BUT SERVES MY PURPOSE CURRENTLY.
  */
 public class CurrentDirectory {
 

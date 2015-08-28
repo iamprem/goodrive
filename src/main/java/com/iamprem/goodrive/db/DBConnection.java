@@ -6,6 +6,7 @@ import java.io.File;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.sql.Statement;
 
 /**
  * Created by prem on 8/20/15.
@@ -25,6 +26,23 @@ public class DBConnection {
             e.printStackTrace();
         }
         return connection;
+    }
+
+    public static void createTables(Connection connection) throws SQLException {
+        Statement stmt = connection.createStatement();
+        String cQuery = "CREATE TABLE IF NOT EXISTS files (" +
+                "id text," +
+                "localname text," +
+                "remotename text," +
+                "localpath text," +
+                "parentid text," +
+                "remotestatus text," +
+                "localstatus text," +
+                "localmodified int," +
+                "mimetype text" +
+                ");";
+        stmt.executeUpdate(cQuery);
+        stmt.close();
     }
 
     public static void close() {

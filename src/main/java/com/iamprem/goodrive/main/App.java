@@ -22,7 +22,7 @@ public class App {
 
     public static Connection conn = DBConnection.open();
 
-    public static void main(String[] args) throws IOException, SQLException {
+    public static void main(String[] args) throws IOException, SQLException, InterruptedException {
 
         Drive service = Authenticate.getDriveService();
 //        String lastSyncVal = String.valueOf(new Date().getTime());
@@ -30,9 +30,10 @@ public class App {
         if (AppUtils.getLastSynced(GoogleDriveServices.APP_PROP_PATH) == 0){
             //First Time
             //Load Some needy props from drive remote
-            GoogleDriveServices.getRootId(service);
+            DBConnection.createTables(conn);
+            String rootId = GoogleDriveServices.getRootId(service);
             GoogleDriveServices.getLargestChangeId(service);
-            GoogleDriveServices.downloadAll(service);
+            GoogleDriveServices.downloadAll(service, rootId);
         }
         //TODO initial DB CHECK HAS to implement
 
@@ -52,6 +53,7 @@ public class App {
             GoogleDriveServices.uploadDeleted(service);
             GoogleDriveServices.uploadCreated(service);
             GoogleDriveServices.uploadModified(service);
+            Thread.sleep(60000);
 
         }
 

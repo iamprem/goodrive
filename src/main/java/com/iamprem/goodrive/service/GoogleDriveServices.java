@@ -83,10 +83,10 @@ public class GoogleDriveServices {
      * @param service
      * @throws IOException
      */
-    public static void downloadAll(Drive service) throws IOException, SQLException {
+    public static void downloadAll(Drive service, String rootId) throws IOException, SQLException {
 
         Stack<CurrentDirectory> dirLevel = new Stack<CurrentDirectory>();
-        dirLevel.push(new CurrentDirectory("root", HOME_DIR, "GooDrive"));
+        dirLevel.push(new CurrentDirectory(rootId, HOME_DIR, "GooDrive"));
 
         while (!dirLevel.isEmpty()) {
             List<File> files = new ArrayList<>();
@@ -113,40 +113,8 @@ public class GoogleDriveServices {
                         String filePath = trimFileName(file, curDir);
                         java.io.File diskFile = new java.io.File(filePath);
 
-                        if (diskFile.exists() && diskFile.isFile()) {
-                            Path path = diskFile.toPath();
-                            String id = Attributes.readUserDefined(path, "id");
-                            if (id.equals(file.getId())) {
-
-                                String md5CheckSum = Attributes.readUserDefined(path, "md5CheckSum");
-                                Long modifiedDate = Files.getLastModifiedTime(path).toMillis();
-                                System.out.println("Local : " + modifiedDate + "  Remote : "
-                                        + file.getModifiedDate().getValue());
-
-                                if (!md5CheckSum.equals(file.getMd5Checksum())
-                                        || Attributes.compareModfDate(file.getModifiedDate().getValue(), modifiedDate)) {
-                                    os = new FileOutputStream(diskFile);
-                                    InputStream is = service.files().get(file.getId()).executeMediaAsInputStream();
-                                    int read = 0;
-                                    byte[] bytes = new byte[1024];
-                                    while ((read = is.read(bytes)) != -1) {
-                                        os.write(bytes, 0, read);
-                                    }
-                                    os.close();
-                                    System.out.println(file.getTitle() + " - Downloaded the latest version!");
-                                } else {
-                                    // NOT MODIFIED
-                                    System.out.println(file.getTitle() + " -- NOT MODIFIED");
-                                }
-
-                            } else {
-                                // TODO Duplicate file with same name but
-                                // different id. Enumerate the file name
-                                diskFile = enumDuplicates(service, file, filePath);
-                            }
-
-                        } else if (diskFile.exists() && diskFile.isDirectory()) {
-                            // If there is a directory in that path, then
+                        if (diskFile.exists()) {
+                            // If there is a directory/file in that path, then
                             // enumerate the file and store.
                             diskFile = enumDuplicates(service, file, filePath);
                         } else {
@@ -170,32 +138,22 @@ public class GoogleDriveServices {
                     } else {
 
                         //TODO : Handle Special MIME TYPES
-                        String dirPath = null;
-                        // Check filename length is larger than 255, then
-                        // truncate it to 255
-                        if (file.getTitle().length() > 255) {
-                            String namePart = file.getTitle().substring(0, 255);
-                            dirPath = curDir.getPath() + java.io.File.separator + namePart;
+
+                        String dirPath = trimFileName(file, curDir);
+                        java.io.File dir = new java.io.File(dirPath);
+                        if (dir.exists()){
+                            dir = enumDuplicates(service, file, dirPath);
                         } else {
-                            dirPath = curDir.getPath() + java.io.File.separator + file.getTitle();
+                            dir.mkdirs();
+                            System.out.println(file.getTitle() + " - Done!");
                         }
 
-                        java.io.File dir = new java.io.File(dirPath);
-                        if (!dir.exists()) {
-                            dir.mkdirs();
-                        }
                         CurrentDirectory newDir = new CurrentDirectory(file.getId(), dirPath, file.getTitle());
                         dirLevel.push(newDir);
-                        Path path = dir.toPath();
-                        UserDefinedFileAttributeView userView = Files.getFileAttributeView(path,
-                                UserDefinedFileAttributeView.class);
-                        FileTime ft = FileTime.fromMillis(file.getModifiedDate().getValue());
-                        Files.setLastModifiedTime(path, ft);
-                        userView.write("id", ByteBuffer.wrap(file.getId().getBytes()));
-                        userView.write("mimeType", ByteBuffer.wrap(file.getMimeType().getBytes()));
                         // TODO: Drive can have multiple parents
                         // TODO: After creating the folder if we add files to that, modified date changes. :P Expected!!!
-                        userView.write("parents", ByteBuffer.wrap(file.getParents().toString().getBytes()));
+                        Attributes.writeUserDefinedBatch(dir.toPath(), file);
+                        Attributes.writeBasic(dir.toPath(), file);
                         DBWrite.insertFile(file, dir);
                     }
 
@@ -257,7 +215,7 @@ public class GoogleDriveServices {
                         File remoteFile = change.getFile();
                         if (remoteFile.getParents().size() > 1){
                             //Handle multiple parents
-                            System.err.println("Handle multiple parents");
+                            System.err.println("Handle multiple parents. [Skipping download]");
                         } else{
                             //TODO check with the local file's last change time in db - DELETE or UPDATE
                             String parent = remoteFile.getParents().get(0).getId();
@@ -332,7 +290,7 @@ public class GoogleDriveServices {
         java.io.File diskFile = new java.io.File(filePath);
         String pathPrefix = filePath.substring(0, filePath.lastIndexOf(java.io.File.separatorChar)+1);
         String fileName = filePath.substring(filePath.lastIndexOf(java.io.File.separatorChar) + 1);
-        String extensionPart = (fileName.lastIndexOf(".")>0?fileName.substring(fileName.lastIndexOf(".")):"");
+        String extensionPart = (fileName.lastIndexOf(".")>=0?fileName.substring(fileName.lastIndexOf(".")):"");
         String namePart = fileName.substring(0, fileName.length() - extensionPart.length());
         int number = 1;
 
@@ -359,25 +317,27 @@ public class GoogleDriveServices {
                     os.write(bytes, 0, read);
                 }
                 os.close();
-                System.out.println(file.getTitle() + " - Done!");
+                System.out.println(file.getTitle() + " - Done [Enumerated]!");
             } catch (IOException e) {
                 e.printStackTrace();
             }
         } else {
             diskFile.mkdirs();
+            System.out.println(file.getTitle() + " - Done [Enumerated]!");
         }
         return diskFile;
     }
 
     public static String trimFileName(File driveFile, CurrentDirectory curDir){
-        String fileName, filePath;
-        if (driveFile.getTitle().length() > 255) {
-            String extensionPart = driveFile.getTitle().substring(driveFile.getTitle().lastIndexOf("."));
-            String namePart = driveFile.getTitle().substring(0, 255 - extensionPart.length());
+        String fileName = driveFile.getTitle();
+        String filePath;
+        if (fileName.length() > 255) {
+            String extensionPart = (fileName.lastIndexOf(".")>=0?fileName.substring(fileName.lastIndexOf(".")):"");
+            String namePart = fileName.substring(0, 255 - extensionPart.length());
             fileName = namePart + extensionPart;
             filePath = curDir.getPath() + java.io.File.separator + fileName;
         } else {
-            filePath = curDir.getPath() + java.io.File.separator + driveFile.getTitle();
+            filePath = curDir.getPath() + java.io.File.separator + fileName;
         }
         return filePath;
     }
