@@ -84,15 +84,27 @@ public class DBWrite {
 
     }
 
+    //Update the db entry after downloading the latest file. Downloading file's local and remote status also reset
+    // to Synced due to the parallel WatchDir's localstatus change
     public static void updateFileModified(FilesMeta fm) throws SQLException {
 
         String id = fm.getId();
         Connection con = App.conn;
         Statement stmt = con.createStatement();
-        String sql = "UPDATE files SET localmodified = "+fm.getLocalModified()+" WHERE id = '"+fm.getId()+"';";
+        String sql = "UPDATE files SET localmodified = "+fm.getLocalModified()+", localstatus = 'Synced'," +
+                "remotestatus = 'Synced' WHERE id = '"+fm.getId()+"' AND remotestatus = 'ENTRY_MODIFY';";
         stmt.executeUpdate(sql);
         stmt.close();
+    }
 
+    //Before downloading the latest file from drive, setting the remotestatus to ENTRY_MODIFY to handle the
+    //WatchDir's consequence on downloading the file.
+    public static void updateFileRemoteStatus(String localPath, String remoteStatus) throws SQLException {
+        Connection con = App.conn;
+        Statement stmt = con.createStatement();
+        String sql = "UPDATE files SET remotestatus = '"+remoteStatus+"' WHERE localpath = '"+localPath+"';";
+        stmt.executeUpdate(sql);
+        stmt.close();
     }
 
     //Only for ENTRY_MODIFY or ENTRY_DELETE
@@ -102,11 +114,8 @@ public class DBWrite {
         Statement stmt = con.createStatement();
         String sql = "UPDATE files SET localstatus = '"+localStatus+"', localmodified = '"+new Date().getTime()
                 +"' WHERE localpath = '"+localPath+"';";
-
         stmt.executeUpdate(sql);
         stmt.close();
-
-
     }
 
     //Update deleted or created file/sub-files if already present in db or create if not!

@@ -205,13 +205,14 @@ public class GoogleDriveServices {
             FilesMeta localFile = DBRead.readFileById(change.getFileId());
 
             if (localFile != null){
-                if (localFile.getLocalModified()/1000 < change.getModificationDate().getValue()/1000){
+                if (localFile.getLocalModified()/1000 < change.getFile().getModifiedDate().getValue()/1000){
                     //Update/delete the file from remote -> local
                     if (change.getDeleted()){
                         LocalFS.deleteFile(localFile.getLocalPath());
                         //TODO update db for remote status to deleted
                     }else {
                         //TODO put this in remote2localUpdate method
+                        DBWrite.updateFileRemoteStatus(localFile.getLocalPath(), "ENTRY_MODIFY");
                         File remoteFile = change.getFile();
                         if (remoteFile.getParents().size() > 1){
                             //Handle multiple parents
@@ -248,11 +249,9 @@ public class GoogleDriveServices {
                                 System.err.println("Local and remote parents did not match");
 
                             }
-//                            Attributes.writeUserDefinedBatch(Paths.get(localFile.getLocalPath()), remoteFile);
-//                            Attributes.writeBasic(Paths.get(localFile.getLocalPath()), remoteFile);
+
                             localFile.setLocalModified(change.getModificationDate().getValue());
                             DBWrite.updateFileModified(localFile);
-
                         }
                     }
 
@@ -262,12 +261,13 @@ public class GoogleDriveServices {
                     //TODO may cause problem on next sync because of local -> remote change counts as a change in remote
                 } else{
                     //Both remote and local have same modified time
+                    System.out.println("Both remote and local have same modified time... [Not downloading]");
                 }
             } else{
                 //IF the file is null, this is created in remote and new to download to local
                 System.err.println("Download the remotely created file to Local- YET TO IMPLEMENT");
             }
-            largestChangeId = change.getId();
+
             AppUtils.addProperty(GoogleDriveServices.APP_PROP_PATH,"largestChangeId", change.getId().toString());
             AppUtils.addProperty(GoogleDriveServices.APP_PROP_PATH, "LastSynced", String.valueOf(change.getModificationDate().getValue()));
         }
@@ -391,8 +391,8 @@ public class GoogleDriveServices {
                             fm.setLocalStatus("Synced");
                             fm.setRemoteStatus("Synced");
                             DBWrite.updateFile(fm);
-                            Attributes.writeBasic(Paths.get(fm.getLocalPath()),file);
-                            Attributes.writeUserDefinedBatch(Paths.get(fm.getLocalPath()),file);
+//                            Attributes.writeBasic(Paths.get(fm.getLocalPath()),file);
+//                            Attributes.writeUserDefinedBatch(Paths.get(fm.getLocalPath()),file);
                         } else{
                             System.err.println("Remote has the latest, Let the retriveChanges handle this");
                             System.exit(1);
@@ -416,8 +416,8 @@ public class GoogleDriveServices {
                         fm.setLocalModified(file.getModifiedDate().getValue());
                         fm.setMimeType(file.getMimeType());
                         DBWrite.updateFile(fm);
-                        Attributes.writeBasic(Paths.get(fm.getLocalPath()), file);
-                        Attributes.writeUserDefinedBatch(Paths.get(fm.getLocalPath()), file);
+//                        Attributes.writeBasic(Paths.get(fm.getLocalPath()), file);
+//                        Attributes.writeUserDefinedBatch(Paths.get(fm.getLocalPath()), file);
 
                     }
                 } catch (IOException e) {
@@ -448,8 +448,8 @@ public class GoogleDriveServices {
                             fm.setLocalStatus("Synced");
                             fm.setRemoteStatus("Synced");
                             DBWrite.updateFile(fm);
-                            Attributes.writeBasic(Paths.get(fm.getLocalPath()),file);
-                            Attributes.writeUserDefinedBatch(Paths.get(fm.getLocalPath()),file);
+//                            Attributes.writeBasic(Paths.get(fm.getLocalPath()),file);
+//                            Attributes.writeUserDefinedBatch(Paths.get(fm.getLocalPath()),file);
                         } else{
                             System.err.println("Remote has the latest, Let the retriveChanges handle this");
                             System.exit(1);
@@ -473,8 +473,8 @@ public class GoogleDriveServices {
                         fm.setLocalModified(file.getModifiedDate().getValue());
                         fm.setMimeType(file.getMimeType());
                         DBWrite.updateFile(fm);
-                        Attributes.writeBasic(Paths.get(fm.getLocalPath()), file);
-                        Attributes.writeUserDefinedBatch(Paths.get(fm.getLocalPath()), file);
+//                        Attributes.writeBasic(Paths.get(fm.getLocalPath()), file);
+//                        Attributes.writeUserDefinedBatch(Paths.get(fm.getLocalPath()), file);
 
                     }
                 } catch (IOException e) {
