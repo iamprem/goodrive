@@ -74,11 +74,11 @@ public class GoogleDriveServices {
         AppUtils.addProperty(APP_PROP_PATH, "largestChangeId", changes.getLargestChangeId().toString());
         return changes.getLargestChangeId().toString();
     }
+
     /**
      * Download files and folders from Drive preserving the folder structure
      *
-     * TODO: Files with same name will be replaced with the last occurrence
-     * while downloading/ Have to handle this like Google Drive windows client
+     * Note: Files with same name will be enumerated and stored
      *
      * @param service
      * @throws IOException
