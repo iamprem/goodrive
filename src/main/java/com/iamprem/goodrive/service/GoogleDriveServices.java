@@ -84,8 +84,8 @@ public class GoogleDriveServices {
      * @throws IOException
      */
     public static void downloadAll(Drive service) throws IOException, SQLException {
+
         Stack<CurrentDirectory> dirLevel = new Stack<CurrentDirectory>();
-        // Initial Level as 'root'
         dirLevel.push(new CurrentDirectory("root", HOME_DIR, "GooDrive"));
 
         while (!dirLevel.isEmpty()) {
@@ -194,8 +194,7 @@ public class GoogleDriveServices {
                         userView.write("id", ByteBuffer.wrap(file.getId().getBytes()));
                         userView.write("mimeType", ByteBuffer.wrap(file.getMimeType().getBytes()));
                         // TODO: Drive can have multiple parents
-                        // TODO: After creating the folder if we add files to
-                        // that, modified date changes. :P Expected!!!
+                        // TODO: After creating the folder if we add files to that, modified date changes. :P Expected!!!
                         userView.write("parents", ByteBuffer.wrap(file.getParents().toString().getBytes()));
                         DBWrite.insertFile(file, dir);
                     }
