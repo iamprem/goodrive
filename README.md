@@ -1,8 +1,7 @@
 GooDrive
 ========
 
-GooDrive is trying to be the **most functional Google Drive Client** available today for linux. I'm an amateur programmer 
-and i believe i've learnt a lot while coding this application. We already have few Google Drive client programs([Grive](https://github.com/Grive/grive), [Grive2](https://github.com/vitalif/grive2), [GoogleDriveJavaClient] (https://github.com/edgefox/GoogleDriveJavaClient)) written 
+GooDrive is trying to be the **most functional Google Drive Client** available today for linux. We already have few Google Drive client programs([Grive](https://github.com/Grive/grive), [Grive2](https://github.com/vitalif/grive2), [GoogleDriveJavaClient] (https://github.com/edgefox/GoogleDriveJavaClient)) written 
 for linux by great programmers and they definitely inspired me a lot. The reason i started this project is, I found that existing Google Drive clients lack key 
 features and those are not supported by the developers recently and also it is very unlikely to see an official version 
 of Google Drive client on linux any time soon.
@@ -26,3 +25,8 @@ Unsupported Features:
  
  - [ ] Google special file types that opens in a browser(Google docs, sheets and so on)
  - [ ] Symbolic links for files (i.e multiple parents for a file)
+ - [ ] Share files with an user
+ - [ ] Icons that show the sync status of the file
+ - [ ] Files shared to you by someone
+ 
+
