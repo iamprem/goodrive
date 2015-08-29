@@ -21,8 +21,8 @@ Feature Supported:
  - [x] Renaming a file in local means, DELETE and CREATE operations.
  - [x] Moving files from one folder to other inside the drive path cause deletion and re-upload of files.
  
- Unsupported Features:
- ---------------------
+Unsupported Features:
+---------------------
  
  - [ ] Google special file types that opens in a browser(Google docs, sheets and so on)
- - [ ] Symbolic links for files (i.e multiple parents for a file)s
+ - [ ] Symbolic links for files (i.e multiple parents for a file)
