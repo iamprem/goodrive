@@ -19,6 +19,8 @@ Feature Supported:
  - [x] Upload the whole file instead of delta file on modification.
  - [x] Renaming a file in local means, DELETE and CREATE operations.
  - [x] Moving files from one folder to other inside the drive path cause deletion and re-upload of files.
+ - [x] File's with same name in Drive will be renamed by numbering.
+ - [x] Long filenames will be truncated to 255 characters.
  
 Unsupported Features:
 ---------------------
@@ -29,4 +31,17 @@ Unsupported Features:
  - [ ] Icons that show the sync status of the file
  - [ ] Files shared to you by someone
  
+Installation Instruction:(Just to run, not finalized)
+-----------------------------------------------------
 
+* Clone the project.
+* Open in eclipse or IntelliJ as a gradle project.
+* Run the application.
+* Authenticate it using your google account.
+* Happy trying.
+
+Note: Sooner i'll make it easy to install.
+
+**Send me your feedback to mprem.dev@gmail.com**
+
+**Thanks :)**
