@@ -61,14 +61,8 @@ public class LocalFS {
         return dir.isDirectory();
     }
 
-    //Deletes a file or directory
+    //Deletes a file or directory(also sub-dirs) without any exception
     public static boolean deleteFile(String path){
-        try {
-            FileUtils.deleteDirectory(new File(path));
-            return true;
-        } catch (IOException e) {
-            e.printStackTrace();
-            return false;
-        }
+        return FileUtils.deleteQuietly(new File(path));
     }
 }

@@ -59,6 +59,38 @@ public class DBWrite {
         stmt.close();
     }
 
+    //While downloading the latest changes, if a file is created in remote; on downloading file watcher automatically
+    //create an entry in db. So we need to update the file id and parent id from the drive file object
+    public static void updateFile(File file, java.io.File diskFile) throws IOException, SQLException {
+
+        String id = file.getId();
+        String localName = diskFile.getName();
+        String remoteName = file.getTitle();
+        String localPath = diskFile.getPath();
+        String parentIds = "";
+        List<ParentReference> parentList = file.getParents();
+        if (parentList.size() == 1){
+            parentIds = parentList.get(0).getId();
+        } else{
+            for (ParentReference parentReference : parentList) {
+                parentIds = parentIds + parentReference.getId() + ";";
+            }
+        }
+        String remoteStatus = "Synced";
+        String localStatus = "Synced";
+        long localModified = file.getModifiedDate().getValue();
+        String mimeType = file.getMimeType();
+
+        Connection con = App.conn;
+
+        Statement stmt = con.createStatement();
+        String sql = "UPDATE files SET id = '"+id+"', parentid = '"+parentIds+"', remotestatus = '"+remoteStatus
+                +"', localstatus = '"+localStatus+"', localmodified = "+localModified+", mimetype = '"+mimeType+"' " +
+                "WHERE localpath = '"+localPath+"';";
+        stmt.executeUpdate(sql);
+        stmt.close();
+    }
+
     public static void updateFile(FilesMeta fm) throws SQLException {
 
         Connection con = App.conn;

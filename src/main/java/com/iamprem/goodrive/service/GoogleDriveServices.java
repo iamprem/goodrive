@@ -110,7 +110,7 @@ public class GoogleDriveServices {
 
                     if (!MIMETYPES_SPECIAL.contains(file.getMimeType())) {
 
-                        String filePath = trimFileName(file, curDir);
+                        String filePath = trimFileName(file, curDir.getPath());
                         java.io.File diskFile = new java.io.File(filePath);
 
                         if (diskFile.exists()) {
@@ -139,7 +139,7 @@ public class GoogleDriveServices {
 
                         //TODO : Handle Special MIME TYPES
 
-                        String dirPath = trimFileName(file, curDir);
+                        String dirPath = trimFileName(file, curDir.getPath());
                         java.io.File dir = new java.io.File(dirPath);
                         if (dir.exists()){
                             dir = enumDuplicates(service, file, dirPath);
@@ -205,11 +205,13 @@ public class GoogleDriveServices {
             FilesMeta localFile = DBRead.readFileById(change.getFileId());
 
             if (localFile != null){
-                if (localFile.getLocalModified()/1000 < change.getFile().getModifiedDate().getValue()/1000){
+                if (localFile.getLocalModified()/1000 < change.getModificationDate().getValue()/1000){
                     //Update/delete the file from remote -> local
-                    if (change.getDeleted()){
+                    if (change.getDeleted() || change.getFile().getLabels().getTrashed()){
+                        //remove row from db for the deleted file
                         LocalFS.deleteFile(localFile.getLocalPath());
-                        //TODO update db for remote status to deleted
+                        DBWrite.deleteFile(localFile.getLocalPath());
+
                     }else {
                         //TODO put this in remote2localUpdate method
                         DBWrite.updateFileRemoteStatus(localFile.getLocalPath(), "ENTRY_MODIFY");
@@ -255,17 +257,18 @@ public class GoogleDriveServices {
                         }
                     }
 
-                } else if (localFile.getLocalModified() > change.getModificationDate().getValue()){
+                } else if (localFile.getLocalModified()/1000 > change.getModificationDate().getValue()/1000){
                     // Update the file from local -> remote
                     // Update the local modified time while pushing to remote
-                    //TODO may cause problem on next sync because of local -> remote change counts as a change in remote
+                    // may cause problem on next sync because of local -> remote change counts as a change in remote
                 } else{
                     //Both remote and local have same modified time
                     System.out.println("Both remote and local have same modified time... [Not downloading]");
                 }
             } else{
                 //IF the file is null, this is created in remote and new to download to local
-                System.err.println("Download the remotely created file to Local- YET TO IMPLEMENT");
+                System.out.println("Download the remotely created file to Local- BETA");
+                downloadFile(service, change.getFile());
             }
 
             AppUtils.addProperty(GoogleDriveServices.APP_PROP_PATH,"largestChangeId", change.getId().toString());
@@ -274,7 +277,57 @@ public class GoogleDriveServices {
 
     }
 
+    //Downloads the latest remotely created files to local
+    private static void downloadFile(Drive service, File file) throws IOException, SQLException {
 
+        OutputStream os;
+        FilesMeta parent = DBRead.readFileById(file.getParents().get(0).getId());
+        String parentPath = parent.getLocalPath();
+
+        if (!MIMETYPES_SPECIAL.contains(file.getMimeType())) {
+
+            String filePath = trimFileName(file, parentPath);
+            java.io.File diskFile = new java.io.File(filePath);
+
+            if (diskFile.exists()) {
+                // If there is a directory/file in that path, then
+                // enumerate the file and store.
+                diskFile = enumDuplicates(service, file, filePath);
+            } else {
+                // No directory or file exist in the same name in
+                // the path
+                os = new FileOutputStream(diskFile);
+                InputStream is = service.files().get(file.getId()).executeMediaAsInputStream();
+                int read = 0;
+                byte[] bytes = new byte[1024];
+                while ((read = is.read(bytes)) != -1) {
+                    os.write(bytes, 0, read);
+                }
+                os.close();
+                System.out.println(file.getTitle() + " - Done!");
+            }
+
+            DBWrite.updateFile(file, diskFile);
+
+        } else {
+
+            //TODO : Handle Special MIME TYPES
+
+            String dirPath = trimFileName(file, parentPath);
+            java.io.File dir = new java.io.File(dirPath);
+            if (dir.exists()){
+                dir = enumDuplicates(service, file, dirPath);
+            } else {
+                dir.mkdirs();
+                System.out.println(file.getTitle() + " - Done!");
+            }
+
+            // TODO: Drive can have multiple parents
+            // TODO: After creating the folder if we add files to that, modified date changes. :P Expected!!!
+            DBWrite.updateFile(file, dir);
+        }
+
+    }
     /**
      * Takes the files/folders with same name and enumerate it. Google drive can
      * have multiple files with same name, But local file system cannot
@@ -328,16 +381,16 @@ public class GoogleDriveServices {
         return diskFile;
     }
 
-    public static String trimFileName(File driveFile, CurrentDirectory curDir){
+    public static String trimFileName(File driveFile, String curDirPath){
         String fileName = driveFile.getTitle();
         String filePath;
         if (fileName.length() > 255) {
             String extensionPart = (fileName.lastIndexOf(".")>=0?fileName.substring(fileName.lastIndexOf(".")):"");
             String namePart = fileName.substring(0, 255 - extensionPart.length());
             fileName = namePart + extensionPart;
-            filePath = curDir.getPath() + java.io.File.separator + fileName;
+            filePath = curDirPath + java.io.File.separator + fileName;
         } else {
-            filePath = curDir.getPath() + java.io.File.separator + fileName;
+            filePath = curDirPath + java.io.File.separator + fileName;
         }
         return filePath;
     }
